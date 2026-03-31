@@ -10,27 +10,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 2. Setup Node
+      # 2. Debug structure (IMPORTANT for troubleshooting)
+      - name: Show folder structure
+        run: ls -R
+
+      # 3. Setup Node.js (updated version)
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      # 3. Install frontend deps
+      # 4. Install frontend dependencies
       - name: Install frontend dependencies
-        working-directory: darulkitab-frontend
-        run: npm install
+        run: |
+          cd darulkitab-frontend
+          npm install
 
-      # 4. Build frontend
+      # 5. Build frontend (Vite)
       - name: Build frontend
-        working-directory: darulkitab-frontend
-        run: npm run build
+        run: |
+          cd darulkitab-frontend
+          npm run build
 
-      # 5. Deploy frontend (dist → public_html)
+      # 6. Deploy frontend (dist → public_html)
       - name: Deploy frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -39,8 +45,13 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-frontend/dist/
           server-dir: public_html/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            node_modules/**
 
-      # 6. Deploy backend (→ public_html/api)
+      # 7. Deploy backend (→ public_html/api)
       - name: Deploy backend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -49,3 +60,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-backend/
           server-dir: public_html/api/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            node_modules/**
