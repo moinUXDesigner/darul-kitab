@@ -1,0 +1,38 @@
+﻿# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Vite output
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# env files
+.env
+.env.*
+
+# logs
+logs
+*.log
+
+# bundler
+*.tgz
+
+# package
+**/node_modules/
+**/dist/
