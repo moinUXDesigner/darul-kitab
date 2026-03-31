@@ -1,0 +1,51 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # 2. Setup Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # 3. Install frontend deps
+      - name: Install frontend dependencies
+        working-directory: darulkitab-frontend
+        run: npm install
+
+      # 4. Build frontend
+      - name: Build frontend
+        working-directory: darulkitab-frontend
+        run: npm run build
+
+      # 5. Deploy frontend (dist → public_html)
+      - name: Deploy frontend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: darulkitab-frontend/dist/
+          server-dir: public_html/
+
+      # 6. Deploy backend (→ public_html/api)
+      - name: Deploy backend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: darulkitab-backend/
+          server-dir: public_html/api/
