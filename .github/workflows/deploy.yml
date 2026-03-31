@@ -14,29 +14,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Debug structure (IMPORTANT for troubleshooting)
-      - name: Show folder structure
-        run: ls -R
+      # 2. Show current directory
+      - name: Show current directory
+        run: pwd
 
-      # 3. Setup Node.js (updated version)
+      # 3. List root files
+      - name: List root files
+        run: ls -la
+
+      # 4. List frontend folder (CRITICAL)
+      - name: Check frontend folder
+        run: ls -la darulkitab-frontend || echo "❌ Folder not found"
+
+      # 5. Check package.json
+      - name: Check package.json
+        run: cat darulkitab-frontend/package.json || echo "❌ package.json not found"
+
+      # 6. Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 4. Install frontend dependencies
-      - name: Install frontend dependencies
+      # 7. Install dependencies
+      - name: Install dependencies
         run: |
-          cd darulkitab-frontend
+          cd darulkitab-frontend || exit 1
           npm install
 
-      # 5. Build frontend (Vite)
+      # 8. Build frontend
       - name: Build frontend
         run: |
-          cd darulkitab-frontend
+          cd darulkitab-frontend || exit 1
           npm run build
 
-      # 6. Deploy frontend (dist → public_html)
+      # 9. Deploy frontend
       - name: Deploy frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -45,13 +57,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-frontend/dist/
           server-dir: public_html/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            node_modules/**
 
-      # 7. Deploy backend (→ public_html/api)
+      # 10. Deploy backend
       - name: Deploy backend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -60,8 +67,3 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-backend/
           server-dir: public_html/api/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            node_modules/**
