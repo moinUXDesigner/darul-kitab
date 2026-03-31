@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ./docker/php
+    container_name: php-api
+    ports:
+      - "8080:80"
+    volumes:
+      - ./api:/var/www/html   # ✅ Application code
+      - ./storage:/var/www/html/storage  # Quran audio files
+    depends_on:
+      - db
+
+
+  db:
+    image: mariadb:10.11
+    container_name: mariadb_darulkitab
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: darulkitab_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_pass
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+
+volumes:
+  dbdata:

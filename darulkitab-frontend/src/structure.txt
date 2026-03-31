@@ -1,0 +1,95 @@
+Folder PATH listing for volume DATA
+Volume serial number is 80C4-35BB
+D:.
+|   main.tsx
+|   structure.txt
+|   
++---app
+|   |   App.tsx
+|   |   
+|   +---api
+|   |       axios.js
+|   |       
+|   +---components
+|   |   |   BottomNav.tsx
+|   |   |   ForgotPasswordPage.tsx
+|   |   |   FullPlayer.tsx
+|   |   |   HomePage.tsx
+|   |   |   LibraryPage.tsx
+|   |   |   LoginPage.tsx
+|   |   |   MiniPlayer.tsx
+|   |   |   PremiumBadge.tsx
+|   |   |   SearchPage.tsx
+|   |   |   SettingsPage.tsx
+|   |   |   Sidebar.tsx
+|   |   |   SignupPage.tsx
+|   |   |   SubscriptionPage.tsx
+|   |   |   SurahDetailPage.tsx
+|   |   |   SurahListPage.tsx
+|   |   |   
+|   |   +---figma
+|   |   |       ImageWithFallback.tsx
+|   |   |       
+|   |   \---ui
+|   |           accordion.tsx
+|   |           alert-dialog.tsx
+|   |           alert.tsx
+|   |           aspect-ratio.tsx
+|   |           avatar.tsx
+|   |           badge.tsx
+|   |           breadcrumb.tsx
+|   |           button.tsx
+|   |           calendar.tsx
+|   |           card.tsx
+|   |           carousel.tsx
+|   |           chart.tsx
+|   |           checkbox.tsx
+|   |           collapsible.tsx
+|   |           command.tsx
+|   |           context-menu.tsx
+|   |           dialog.tsx
+|   |           drawer.tsx
+|   |           dropdown-menu.tsx
+|   |           form.tsx
+|   |           hover-card.tsx
+|   |           input-otp.tsx
+|   |           input.tsx
+|   |           label.tsx
+|   |           menubar.tsx
+|   |           navigation-menu.tsx
+|   |           pagination.tsx
+|   |           popover.tsx
+|   |           progress.tsx
+|   |           radio-group.tsx
+|   |           resizable.tsx
+|   |           scroll-area.tsx
+|   |           select.tsx
+|   |           separator.tsx
+|   |           sheet.tsx
+|   |           sidebar.tsx
+|   |           skeleton.tsx
+|   |           slider.tsx
+|   |           sonner.tsx
+|   |           switch.tsx
+|   |           table.tsx
+|   |           tabs.tsx
+|   |           textarea.tsx
+|   |           toggle-group.tsx
+|   |           toggle.tsx
+|   |           tooltip.tsx
+|   |           use-mobile.ts
+|   |           utils.ts
+|   |           
+|   +---contexts
+|   |       AudioPlayerContext.tsx
+|   |       AuthContext.tsx
+|   |       
+|   \---data
+|           mock-data.ts
+|           
+\---styles
+        fonts.css
+        index.css
+        tailwind.css
+        theme.css
+        
