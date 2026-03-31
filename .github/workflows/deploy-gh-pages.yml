@@ -1,30 +1,39 @@
+jobs:
 name: Deploy to GitHub Pages
 
+# Trigger on push to main branch
 on:
   push:
     branches:
       - main
 
-jobs:
+
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Opt in to Node.js 24 for all JS actions (future-proof)
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
+      # Checkout code with credentials disabled for gh-pages deploy
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      # Use latest Node.js 24 for build
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
+      # Build the frontend
       - name: Build frontend
         run: |
           cd darulkitab-frontend
           npm ci
           npm run build
 
+      # Deploy to GitHub Pages (gh-pages branch)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
