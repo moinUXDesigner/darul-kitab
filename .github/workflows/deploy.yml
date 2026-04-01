@@ -34,6 +34,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-frontend/dist/
           server-dir: ./
+          exclude: |
+            api/**
 
       - name: Deploy backend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -43,3 +45,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: darulkitab-backend/api/
           server-dir: api/
+          dangerous-clean-slate: true
