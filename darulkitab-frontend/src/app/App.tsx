@@ -19,7 +19,12 @@ import QuranAudioList from './components/QuranAudioList';
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
-  const [currentPage, setCurrentPage] = useState<string>(isAuthenticated ? 'home' : 'login');
+  // Read localStorage directly to avoid any timing issues with context
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('jwt_token');
+    return (storedUser && storedToken) ? 'home' : 'login';
+  });
   const [pageData, setPageData] = useState<any>(null);
 
   const handleNavigate = (page: string, data?: any) => {
