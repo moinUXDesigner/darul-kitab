@@ -28,10 +28,13 @@ function AppContent() {
     window.scrollTo(0, 0);
   };
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated, or to home if authenticated on auth pages
   React.useEffect(() => {
     if (!isAuthenticated && currentPage !== 'login' && currentPage !== 'signup' && currentPage !== 'forgot-password') {
       setCurrentPage('login');
+    }
+    if (isAuthenticated && (currentPage === 'login' || currentPage === 'signup' || currentPage === 'forgot-password')) {
+      setCurrentPage('home');
     }
   }, [isAuthenticated, currentPage]);
 
