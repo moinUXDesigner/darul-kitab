@@ -10,47 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Show current directory
-      - name: Show current directory
-        run: pwd
-
-      # 3. List root files
-      - name: List root files
-        run: ls -la
-
-      # 4. List frontend folder (CRITICAL)
-      - name: Check frontend folder
-        run: ls -la darulkitab-frontend || echo "❌ Folder not found"
-
-      # 5. Check package.json
-      - name: Check package.json
-        run: cat darulkitab-frontend/package.json || echo "❌ package.json not found"
-
-      # 6. Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
 
-      # 7. Install dependencies
       - name: Install dependencies
-        run: |
-          cd darulkitab-frontend || exit 1
-          npm install
+        working-directory: darulkitab-frontend
+        run: npm ci
 
-      # 8. Build frontend
       - name: Build frontend
-        run: |
-          cd darulkitab-frontend || exit 1
-          npm run build
+        working-directory: darulkitab-frontend
+        run: npm run build
 
-      # 9. Deploy frontend
       - name: Deploy frontend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
@@ -58,12 +35,11 @@ jobs:
           local-dir: darulkitab-frontend/dist/
           server-dir: public_html/
 
-      # 10. Deploy backend
       - name: Deploy backend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: darulkitab-backend/
+          local-dir: darulkitab-backend/api/
           server-dir: public_html/api/
