@@ -33,12 +33,11 @@ try {
     */
     $sql = "SELECT 
                 u.id, 
-                u.name, 
+                u.user_name, 
                 u.email, 
-                COUNT(d.id) AS total_docs 
+                u.user_role, 
+                u.is_premium 
             FROM users u
-            LEFT JOIN documents d ON u.id = d.user_id
-            GROUP BY u.id
             ORDER BY u.id DESC";
 
     $stmt = $db->prepare($sql);

@@ -25,19 +25,24 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
 if (!$user) {
-$stmt = $db->prepare("INSERT INTO users(name,email,password) VALUES(?,?,?)");
-$stmt->execute([$name, $email, 'GOOGLE']);
+$stmt = $db->prepare("INSERT INTO users(user_name, email, password_hash, user_role, is_premium) VALUES(?,?,?,?,?)");
+$stmt->execute([$name, $email, 'GOOGLE_AUTH', 'user', 0]);
 $id = $db->lastInsertId();
+$isPremium = false;
+$userRole = 'user';
 } else {
 $id = $user['id'];
+$name = $user['user_name'];
+$isPremium = (bool)$user['is_premium'];
+$userRole = $user['user_role'];
 }
 
 
-$token = createToken(['id'=>$id, 'email'=>$email]);
+$token = createToken(['id'=>$id, 'email'=>$email, 'user_role'=>$userRole, 'is_premium'=>$isPremium]);
 
 
 echo json_encode([
 'token' => $token,
-'user' => ['id'=>$id, 'name'=>$name, 'email'=>$email]
+'user' => ['id'=>$id, 'user_name'=>$name, 'email'=>$email, 'user_role'=>$userRole, 'is_premium'=>$isPremium]
 ]);
 ?>

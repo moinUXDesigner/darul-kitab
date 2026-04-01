@@ -11,7 +11,7 @@ const JWT_EXP = 3600;
 
 function createToken(array $payload): string {
 return JWT::encode([
-'iss' => 'gmail-clone',
+'iss' => 'darul-kitab',
 'iat' => time(),
 'exp' => time() + JWT_EXP,
 'data' => $payload

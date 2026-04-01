@@ -20,7 +20,7 @@ $conn = $db->connect();     // ✅ GET PDO CONNECTION
 
 // ---------- QUERY ----------
 $stmt = $conn->query(
-    "SELECT id, name, email FROM users ORDER BY id DESC"
+    "SELECT id, user_name, email, user_role, is_premium FROM users ORDER BY id DESC"
 );
 
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -32,10 +32,10 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
       <div className="bg-card p-6 rounded-2xl border border-border mb-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl">
-            {user?.name?.charAt(0).toUpperCase()}
+            {user?.user_name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
-            <h3 className="mb-1">{user?.name}</h3>
+            <h3 className="mb-1">{user?.user_name}</h3>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <div className="flex items-center gap-2 mt-2">
               {isPremium ? (

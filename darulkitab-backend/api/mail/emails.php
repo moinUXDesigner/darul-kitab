@@ -15,20 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-
-require_once __DIR__ . '/../auth/middleware.php';
-require_once __DIR__ . '/../config/database.php';
-
-
-
-$user = authGuard();
-$db = (new Database())->connect();
-
-
-$stmt = $db->prepare("SELECT id, sender AS `from`, subject, body FROM emails WHERE user_id=? ORDER BY id DESC");
-$stmt->execute([$user->id]);
-
-
-echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-
-?>
+// This endpoint is deprecated and will be replaced with a notification system
+http_response_code(410);
+echo json_encode([
+    "status" => "error",
+    "message" => "This endpoint has been deprecated"
+]);
