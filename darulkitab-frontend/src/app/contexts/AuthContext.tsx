@@ -47,28 +47,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 ================================ */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Initialize synchronously from localStorage to avoid flash of login page
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem("jwt_token");
+  });
 
   /* -------------------------------
-     Restore session on refresh
+     Restore axios header on mount
   -------------------------------- */
   useEffect(() => {
-    const storedToken = localStorage.getItem("jwt_token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      try {
-        const parsedUser: User = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
-
-        // attach token to axios for all future requests
-        api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
-      } catch (err) {
-        console.error("Invalid stored auth, clearing session");
-        logout();
-      }
+    if (token) {
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
     }
   }, []);
 
