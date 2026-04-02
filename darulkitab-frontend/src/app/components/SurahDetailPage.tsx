@@ -243,6 +243,7 @@ export function SurahDetailPage({
   }, [surah.id]);
 
   const playAyah = (audio: AyahAudio) => {
+    const token = localStorage.getItem('jwt_token') || '';
     play({
       id: audio.id,
       surahNumber: surah.id,
@@ -253,7 +254,7 @@ export function SurahDetailPage({
         audio.ayah_end ? "-" + audio.ayah_end : ""
       })`,
       reciter: audio.reciter || "Unknown",
-      audioUrl: `${api.defaults.baseURL}/quran/stream.php?id=${audio.id}`,
+      audioUrl: `${api.defaults.baseURL}/quran/stream.php?id=${audio.id}&token=${encodeURIComponent(token)}`,
       isPremium: false,
     });
   };

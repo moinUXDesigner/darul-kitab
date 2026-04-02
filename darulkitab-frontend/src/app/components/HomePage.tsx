@@ -17,8 +17,9 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       return;
     }
 
+    const token = localStorage.getItem('jwt_token') || '';
     const audioUrl = ayah.streamId
-      ? `${api.defaults.baseURL}quran/stream.php?id=${ayah.streamId}`
+      ? `${api.defaults.baseURL}quran/stream.php?id=${ayah.streamId}&token=${encodeURIComponent(token)}`
       : ayah.audioUrl || '#';
 
     play({
