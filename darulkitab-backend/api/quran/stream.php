@@ -2,6 +2,13 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/storage.php';
+require_once __DIR__ . '/../auth/middleware.php';
+
+/* ================================
+   PREMIUM GATING — AUTH CHECK
+================================ */
+
+$user = authGuard();
 
 /* ================================
    GET AUDIO ID
@@ -22,7 +29,7 @@ try {
     $db = (new Database())->connect();
 
     $stmt = $db->prepare(
-        "SELECT filepath FROM quran_audio WHERE id = ? AND is_active = 1"
+        "SELECT filepath, surah_no FROM quran_audio WHERE id = ? AND is_active = 1"
     );
     $stmt->execute([$audioId]);
     $audio = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -30,6 +37,20 @@ try {
     if (!$audio) {
         http_response_code(404);
         exit("Audio not found");
+    }
+
+    // Check premium status — allow Surah 1 (Al-Fatihah) free, gate rest
+    $surahNo = (int)$audio['surah_no'];
+    if ($surahNo !== 1 && empty($user->is_premium)) {
+        // Verify from DB in case JWT is stale
+        $premStmt = $db->prepare("SELECT is_premium FROM users WHERE id = ?");
+        $premStmt->execute([$user->id]);
+        $dbUser = $premStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$dbUser || !$dbUser['is_premium']) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            exit(json_encode(["message" => "Premium subscription required", "code" => "PREMIUM_REQUIRED"]));
+        }
     }
 
 } catch (PDOException $e) {
