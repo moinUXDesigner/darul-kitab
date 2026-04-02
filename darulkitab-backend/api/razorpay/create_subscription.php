@@ -14,6 +14,10 @@ require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/razorpay.php';
 
+header('Content-Type: application/json');
+
+try {
+
 $user = authGuard();
 $data = json_decode(file_get_contents('php://input'), true);
 
@@ -75,7 +79,16 @@ if (isset($response['error']) && $response['error'] === true) {
     exit(json_encode([
         "status" => "error",
         "message" => "Failed to create subscription",
-        "details" => $response['error']['description'] ?? 'Unknown error',
+        "details" => $response['error']['description'] ?? ($response['message'] ?? 'Unknown error'),
+    ]));
+}
+
+if (empty($response['id'])) {
+    http_response_code(500);
+    exit(json_encode([
+        "status" => "error",
+        "message" => "Razorpay returned no subscription ID",
+        "debug" => $response,
     ]));
 }
 
@@ -104,3 +117,12 @@ echo json_encode([
     "amount" => '₹' . $plan['price'],
     "razorpay_key" => RAZORPAY_KEY_ID,
 ]);
+
+} catch (Throwable $e) {
+    error_log("create_subscription error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    http_response_code(500);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Server error: " . $e->getMessage(),
+    ]);
+}
