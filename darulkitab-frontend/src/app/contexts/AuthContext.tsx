@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
     }
-  }, []);
+  }, [token]);
 
   /* -------------------------------
      LOGIN
@@ -132,15 +132,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get("/razorpay/subscription_status.php");
       const isPrem = res.data?.is_premium === true;
-      if (user) {
-        const updatedUser = { ...user, is_premium: isPrem };
-        setUser(updatedUser);
+      setUser((prevUser) => {
+        if (!prevUser) return prevUser;
+        const updatedUser = { ...prevUser, is_premium: isPrem };
         localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
+        return updatedUser;
+      });
     } catch {
       // Silently fail — premium status unchanged
     }
   };
+
+  /* -------------------------------
+     Keep premium in sync on app load
+  -------------------------------- */
+  useEffect(() => {
+    if (token && user) {
+      refreshPremiumStatus();
+    }
+  }, [token]);
 
   /* -------------------------------
      LOGOUT

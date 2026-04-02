@@ -41,6 +41,9 @@ export function SubscriptionPage({ onNavigate }: { onNavigate: (page: string) =>
       setLoadingStatus(true);
       const res = await api.get('/razorpay/subscription_status.php');
       setSubInfo(res.data);
+      if (res.data?.is_premium === true) {
+        await refreshPremiumStatus();
+      }
     } catch {
       // Not subscribed — that's fine
     } finally {
