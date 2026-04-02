@@ -254,7 +254,7 @@ export function SurahDetailPage({
         audio.ayah_end ? "-" + audio.ayah_end : ""
       })`,
       reciter: audio.reciter || "Unknown",
-      audioUrl: `${api.defaults.baseURL}/quran/stream.php?id=${audio.id}&token=${encodeURIComponent(token)}`,
+      audioUrl: `${api.defaults.baseURL}quran/stream.php?id=${audio.id}&token=${encodeURIComponent(token)}`,
       isPremium: false,
     });
   };
