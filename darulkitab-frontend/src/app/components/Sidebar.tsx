@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, Book } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -12,7 +12,6 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'darulkitab', label: 'Darul Kitab', icon: Book },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'library', label: 'Library', icon: Library },
     { id: 'subscription', label: 'Subscription', icon: Crown },

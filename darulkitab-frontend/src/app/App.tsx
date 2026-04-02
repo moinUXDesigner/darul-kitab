@@ -15,7 +15,6 @@ import { MiniPlayer } from './components/MiniPlayer';
 import { FullPlayer } from './components/FullPlayer';
 import { BottomNav } from './components/BottomNav';
 import { Sidebar } from './components/Sidebar';
-import QuranAudioList from './components/QuranAudioList';
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -70,7 +69,6 @@ function AppContent() {
             <SurahDetailPage surah={pageData} onNavigate={handleNavigate} />
           )}
           {currentPage === 'library' && <LibraryPage onNavigate={handleNavigate} />}
-          {currentPage === 'darulkitab' && <QuranAudioList onNavigate={handleNavigate} />}
           {currentPage === 'subscription' && <SubscriptionPage onNavigate={handleNavigate} />}
           {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
         </div>
