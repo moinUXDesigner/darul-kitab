@@ -32,6 +32,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (payload: SignupPayload) => Promise<void>;
   logout: () => void;
+  refreshPremiumStatus: () => Promise<void>;
   isAuthenticated: boolean;
   isPremium: boolean;
 }
@@ -125,6 +126,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /* -------------------------------
+     REFRESH PREMIUM STATUS
+  -------------------------------- */
+  const refreshPremiumStatus = async () => {
+    try {
+      const res = await api.get("/razorpay/subscription_status.php");
+      const isPrem = res.data?.is_premium === true;
+      if (user) {
+        const updatedUser = { ...user, is_premium: isPrem };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+    } catch {
+      // Silently fail — premium status unchanged
+    }
+  };
+
+  /* -------------------------------
      LOGOUT
   -------------------------------- */
   const logout = () => {
@@ -149,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
+        refreshPremiumStatus,
         isAuthenticated: !!user,
         isPremium: user?.is_premium === true,
       }}
