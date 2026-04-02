@@ -83,6 +83,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setIsMinimized(true);
   };
 
+  // Ref to track which URL we already attempted blob-fallback for
+  const blobFallbackAttempted = useRef<string | null>(null);
+
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
@@ -103,14 +106,47 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
     };
 
+    const onError = async () => {
+      // If the <audio> element gets a network error (e.g. 401),
+      // retry via fetch() which CAN send Authorization headers.
+      const srcUrl = audio.src;
+      if (!srcUrl || srcUrl === '' || blobFallbackAttempted.current === srcUrl) return;
+      blobFallbackAttempted.current = srcUrl;
+
+      const token = localStorage.getItem('jwt_token');
+      if (!token) {
+        console.error('[AudioPlayer] No token – cannot retry stream');
+        setIsPlaying(false);
+        return;
+      }
+
+      try {
+        console.log('[AudioPlayer] Direct load failed, retrying with fetch + Auth header…');
+        const resp = await fetch(srcUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        audio.src = blobUrl;
+        audio.load();
+        audio.play().catch(() => setIsPlaying(false));
+      } catch (err) {
+        console.error('[AudioPlayer] Fetch fallback also failed:', err);
+        setIsPlaying(false);
+      }
+    };
+
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
     };
   }, []);
 
@@ -120,6 +156,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
     if (currentAyah) {
       if (audio.src !== currentAyah.audioUrl) {
+        blobFallbackAttempted.current = null; // reset fallback for new track
         audio.src = currentAyah.audioUrl;
         audio.load();
       }
