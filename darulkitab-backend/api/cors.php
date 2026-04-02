@@ -7,6 +7,8 @@ $allowed_origins = [
     'http://192.168.0.104:5173',
     'https://www.quranfahmi.com',
     'https://quranfahmi.com',
+    'https://www.quranfahmi.in',
+    'https://quranfahmi.in',
 ];
 
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
