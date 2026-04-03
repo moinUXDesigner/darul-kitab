@@ -13,7 +13,19 @@
     RewriteRule . /index.html [L]
 </IfModule>
 
-# Cache static assets
+# NEVER cache index.html (so new JS bundles are picked up immediately)
+<FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+</FilesMatch>
+
+# NEVER cache service worker
+<FilesMatch "^sw\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+</FilesMatch>
+
+# Cache hashed static assets (JS/CSS with hash in filename)
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType text/css "access plus 1 year"
