@@ -1,11 +1,10 @@
+# Pass Authorization header to PHP (Hostinger/LiteSpeed strips it in CGI mode)
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # ✅ Pass Authorization header to PHP (shared hosting strips it)
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # ✅ Allow CORS preflight requests (OPTIONS)
+    # Allow CORS preflight requests
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ - [L]
 </IfModule>

@@ -36,7 +36,6 @@ jobs:
           server-dir: public_html/
           protocol: ftps
           timeout: 60000
-          dangerous-clean-slate: true
 
       - name: Deploy backend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -48,6 +47,5 @@ jobs:
           server-dir: public_html/api/
           protocol: ftps
           timeout: 60000
-          dangerous-clean-slate: true
           exclude: |
             **/vendor/bin/**
