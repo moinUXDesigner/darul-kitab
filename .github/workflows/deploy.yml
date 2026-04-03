@@ -36,6 +36,9 @@ jobs:
           server-dir: public_html/
           protocol: ftps
           timeout: 60000
+          exclude: |
+            api/**
+            storage/**
 
       - name: Deploy backend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
