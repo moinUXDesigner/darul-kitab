@@ -42,7 +42,7 @@ jobs:
             set net:timeout 30;
             set net:max-retries 3;
             set net:reconnect-interval-base 5;
-            mirror -R --verbose --no-perms --exclude storage/ darulkitab-frontend/dist/ /public_html/;
-            mirror -R --verbose --no-perms darulkitab-backend/api/ /public_html/api/;
+            mirror -R --delete --verbose --no-perms darulkitab-frontend/dist/ ./
+            mirror -R --delete --verbose --no-perms darulkitab-backend/api/ ./api/
             bye;
           "

@@ -1,32 +1,43 @@
-import React from 'react';
-import { BookmarkCheck, Download, ListMusic, Crown } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BookmarkCheck, Download, ListMusic, Crown, Heart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
 
 export function LibraryPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { isPremium } = useAuth();
+  const [favCount, setFavCount] = useState(0);
+
+  useEffect(() => {
+    api.get('/user/favorites.php').then(res => {
+      if (Array.isArray(res.data)) setFavCount(res.data.length);
+    }).catch(() => {});
+  }, []);
 
   const libraryItems = [
+    {
+      icon: Heart,
+      title: 'Favorites',
+      count: favCount,
+      description: 'Your favorite tracks',
+      locked: false,
+      page: 'favorites'
+    },
     {
       icon: ListMusic,
       title: 'Playlists',
       count: isPremium ? 5 : 2,
       description: 'Your custom playlists',
-      locked: false
+      locked: false,
+      page: ''
     },
     {
       icon: Download,
       title: 'Downloads',
       count: isPremium ? 24 : 0,
       description: 'Offline content',
-      locked: !isPremium
+      locked: !isPremium,
+      page: ''
     },
-    {
-      icon: BookmarkCheck,
-      title: 'Bookmarks',
-      count: 12,
-      description: 'Saved ayahs',
-      locked: false
-    }
   ];
 
   return (
@@ -66,6 +77,8 @@ export function LibraryPage({ onNavigate }: { onNavigate: (page: string) => void
             onClick={() => {
               if (item.locked) {
                 onNavigate('subscription');
+              } else if (item.page) {
+                onNavigate(item.page);
               }
             }}
           >

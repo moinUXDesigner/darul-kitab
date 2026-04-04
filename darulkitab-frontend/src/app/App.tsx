@@ -9,6 +9,7 @@ import { SearchPage } from './components/SearchPage';
 import { SurahListPage } from './components/SurahListPage';
 import { SurahDetailPage } from './components/SurahDetailPage';
 import { LibraryPage } from './components/LibraryPage';
+import { FavoritesPage } from './components/FavoritesPage';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { SettingsPage } from './components/SettingsPage';
 import { MiniPlayer } from './components/MiniPlayer';
@@ -69,6 +70,7 @@ function AppContent() {
             <SurahDetailPage surah={pageData} onNavigate={handleNavigate} />
           )}
           {currentPage === 'library' && <LibraryPage onNavigate={handleNavigate} />}
+          {currentPage === 'favorites' && <FavoritesPage onNavigate={handleNavigate} />}
           {currentPage === 'subscription' && <SubscriptionPage onNavigate={handleNavigate} />}
           {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
         </div>

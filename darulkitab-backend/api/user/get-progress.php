@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../auth/middleware.php';
+require_once __DIR__ . '/schema-fix.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
@@ -15,6 +16,8 @@ $audioId = isset($_GET['audio_id']) ? (int)$_GET['audio_id'] : 0;
 
 try {
     $db = (new Database())->connect();
+
+    ensureListeningProgressSchema($db);
 
     // Case 1: Get progress for a specific audio track
     if ($audioId > 0) {

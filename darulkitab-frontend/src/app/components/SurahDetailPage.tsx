@@ -184,8 +184,8 @@
 
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
-import { useAudioPlayer } from "../contexts/AudioPlayerContext";
-import { ChevronLeft, Play, BookOpen } from "lucide-react";
+import { useAudioPlayer, AyahData } from "../contexts/AudioPlayerContext";
+import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock } from "lucide-react";
 
 /* ================================
    TYPES (MATCH DB)
@@ -219,11 +219,12 @@ export function SurahDetailPage({
   surah: Surah;
   onNavigate: (page: string, data?: any) => void;
 }) {
-  const { play } = useAudioPlayer();
+  const { play, playQueue } = useAudioPlayer();
 
   const [ayahAudios, setAyahAudios] = useState<AyahAudio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [progressMap, setProgressMap] = useState<Record<number, { position: number; duration: number; completed: boolean }>>({});
 
   useEffect(() => {
     const fetchAyahs = async () => {
@@ -242,28 +243,54 @@ export function SurahDetailPage({
     fetchAyahs();
   }, [surah.id]);
 
-  const playAyah = (audio: AyahAudio) => {
+  // Fetch progress for this surah
+  useEffect(() => {
+    api.get(`/user/get-progress.php?surah_no=${surah.id}`).then(res => {
+      if (Array.isArray(res.data)) {
+        const map: Record<number, { position: number; duration: number; completed: boolean }> = {};
+        for (const p of res.data) {
+          map[p.audio_id] = {
+            position: Number(p.position_seconds),
+            duration: Number(p.duration_seconds),
+            completed: !!p.completed,
+          };
+        }
+        setProgressMap(map);
+      }
+    }).catch(() => {});
+  }, [surah.id]);
+
+  const buildAyahData = (audio: AyahAudio): AyahData => {
     const token = localStorage.getItem('jwt_token') || '';
-    play({
+    return {
       id: audio.id,
       surahNumber: surah.id,
       surahName: surah.english_name,
       surahNameArabic: surah.arabic_name,
       ayahNumber: audio.ayah_start || 0,
-      title: `Surah ${surah.english_name} (${audio.ayah_start}${
-        audio.ayah_end ? "-" + audio.ayah_end : ""
-      })`,
+      ayahEnd: audio.ayah_end || undefined,
+      title: `Surah ${surah.english_name} (${audio.ayah_start}${audio.ayah_end ? "-" + audio.ayah_end : ""})`,
       reciter: audio.reciter || "Unknown",
       audioUrl: `${api.defaults.baseURL}quran/stream.php?id=${audio.id}&token=${encodeURIComponent(token)}`,
       isPremium: false,
-    });
+    };
+  };
+
+  const playAyah = (audio: AyahAudio) => {
+    play(buildAyahData(audio));
   };
 
   const playAll = () => {
     if (ayahAudios.length > 0) {
-      playAyah(ayahAudios[0]);
+      const queueData = ayahAudios.map(a => buildAyahData(a));
+      playQueue(queueData, 0);
     }
   };
+
+  // Calculate surah-level progress
+  const totalTracks = ayahAudios.length;
+  const completedTracks = Object.values(progressMap).filter(p => p.completed).length;
+  const surahProgressPct = totalTracks > 0 ? Math.round((completedTracks / totalTracks) * 100) : 0;
 
   if (loading) {
     return <div className="text-center py-20">Loading ayahs…</div>;
@@ -294,9 +321,22 @@ export function SurahDetailPage({
         >
           {surah.arabic_name}
         </p>
-        <p className="text-white/60 text-sm">
+        <p className="text-white/60 text-sm mb-3">
           {surah.ayah_count} verses • {surah.revelation_type}
         </p>
+        {totalTracks > 0 && (
+          <div className="mt-2 max-w-xs mx-auto">
+            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white rounded-full transition-all"
+                style={{ width: `${surahProgressPct}%` }}
+              />
+            </div>
+            <p className="text-white/80 text-xs mt-1">
+              {completedTracks}/{totalTracks} tracks • {surahProgressPct}% complete
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Play All */}
@@ -310,24 +350,50 @@ export function SurahDetailPage({
 
       {/* Ayah Audio List */}
       <div className="space-y-3">
-        {ayahAudios.map((audio) => (
-          <div
-            key={audio.id}
-            onClick={() => playAyah(audio)}
-            className="bg-card p-4 rounded-2xl border border-border hover:border-primary cursor-pointer flex items-center justify-between"
-          >
-            <div>
-              <div className="font-medium">
-                Ayah {audio.ayah_start}
-                {audio.ayah_end ? `–${audio.ayah_end}` : ""}
+        {ayahAudios.map((audio) => {
+          const prog = progressMap[audio.id];
+          const trackPct = prog && prog.duration > 0
+            ? Math.round((prog.position / prog.duration) * 100)
+            : 0;
+
+          return (
+            <div
+              key={audio.id}
+              onClick={() => playAyah(audio)}
+              className="bg-card p-4 rounded-2xl border border-border hover:border-primary cursor-pointer flex items-center justify-between"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">
+                    Ayah {audio.ayah_start}
+                    {audio.ayah_end ? `–${audio.ayah_end}` : ""}
+                  </span>
+                  {prog?.completed && (
+                    <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Reciter: {audio.reciter || "Unknown"}
+                </div>
+                {prog && !prog.completed && prog.position > 0 && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[200px]">
+                      <div
+                        className="h-full bg-primary rounded-full"
+                        style={{ width: `${trackPct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {Math.floor(prog.position / 60)}:{Math.floor(prog.position % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="text-sm text-muted-foreground">
-                Reciter: {audio.reciter || "Unknown"}
-              </div>
+              <Play className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
             </div>
-            <Play className="w-4 h-4 text-primary" />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

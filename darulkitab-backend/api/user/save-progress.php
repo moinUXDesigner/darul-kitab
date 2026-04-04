@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../auth/middleware.php';
+require_once __DIR__ . '/schema-fix.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -22,6 +23,8 @@ if ($audioId <= 0) {
 
 try {
     $db = (new Database())->connect();
+
+    ensureListeningProgressSchema($db);
 
     // Verify audio exists
     $check = $db->prepare("SELECT id, surah_no FROM quran_audio WHERE id = ? AND is_active = 1");

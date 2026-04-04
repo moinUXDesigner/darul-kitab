@@ -1,24 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, 
-  ChevronDown, Heart, X, Download, Clock, Languages, Crown
+  ChevronDown, Heart, X, Download, Clock, Languages, Crown, Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { 
     currentAyah, 
-    isPlaying, 
+    isPlaying,
+    isBuffering,
     currentTime, 
     duration,
     playbackSpeed,
+    queue,
+    queueIndex,
+    isFavorite,
     togglePlayPause, 
     setSpeed, 
+    seek,
+    skipNext,
+    skipPrevious,
     minimize,
     close,
-    isMinimized
+    isMinimized,
+    toggleFavorite,
   } = useAudioPlayer();
 
   const formatTime = (seconds: number) => {
@@ -31,11 +39,19 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
   const { isPremium } = useAuth();
   const [showTranslation, setShowTranslation] = useState(true);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current || duration <= 0) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    seek(percent * duration);
+  };
 
   if (!currentAyah || isMinimized) return null;
 
   const isLocked = currentAyah.isPremium && !isPremium;
-  const speeds = [0.5, 0.75, 1, 1.25, 1.5];
+  const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
@@ -116,7 +132,7 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
           <div className="mb-6">
             <div className="text-center mb-4">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm mb-6">
-                <span>Ayah {currentAyah.ayahNumber}</span>
+                <span>Ayah {currentAyah.ayahNumber}{currentAyah.ayahEnd ? `–${currentAyah.ayahEnd}` : ''}</span>
               </div>
             </div>
 
@@ -146,12 +162,20 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
             )}
           </div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar — interactive */}
           <div className="mb-6">
-            <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-2">
+            <div
+              ref={progressBarRef}
+              className="relative h-2 bg-muted rounded-full mb-2 cursor-pointer group"
+              onClick={handleSeek}
+            >
               <div
-                className="absolute h-full bg-primary rounded-full transition-all"
+                className="absolute inset-y-0 left-0 bg-primary rounded-full"
                 style={{ width: `${progressPercent}%` }}
+              />
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ left: `calc(${progressPercent}% - 8px)` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
@@ -167,6 +191,7 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
             </button>
 
             <button 
+              onClick={skipPrevious}
               disabled={isLocked}
               className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50"
             >
@@ -178,11 +203,18 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
               disabled={isLocked}
               className="w-16 h-16 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center shadow-lg disabled:opacity-50"
             >
-              {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+              {isBuffering ? (
+                <Loader2 className="w-8 h-8 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-8 h-8" />
+              ) : (
+                <Play className="w-8 h-8 ml-1" />
+              )}
             </button>
 
             <button 
-              disabled={isLocked}
+              onClick={skipNext}
+              disabled={isLocked || queueIndex >= queue.length - 1}
               className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50"
             >
               <SkipForward className="w-6 h-6" />
@@ -222,8 +254,11 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
               )}
             </button>
 
-            <button className="hover:text-foreground transition-colors">
-              <Heart className="w-5 h-5" />
+            <button 
+              onClick={toggleFavorite}
+              className="hover:text-foreground transition-colors"
+            >
+              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
             </button>
 
             <button 
