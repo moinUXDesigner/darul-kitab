@@ -26,6 +26,16 @@ jobs:
         working-directory: darulkitab-frontend
         run: npm run build
 
+      - name: Debug FTP root directory
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          curl -s --ftp-ssl -k --list-only "ftps://${FTP_SERVER}/" -u "${FTP_USERNAME}:${FTP_PASSWORD}" || true
+          echo "---"
+          curl -s --ftp-ssl -k --list-only "ftps://${FTP_SERVER}/public_html/" -u "${FTP_USERNAME}:${FTP_PASSWORD}" || true
+
       - name: Deploy frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
