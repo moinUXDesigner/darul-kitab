@@ -26,39 +26,23 @@ jobs:
         working-directory: darulkitab-frontend
         run: npm run build
 
-      - name: Debug FTP root directory
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy via lftp
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
-          curl -s --ftp-ssl -k --list-only "ftps://${FTP_SERVER}/" -u "${FTP_USERNAME}:${FTP_PASSWORD}" || true
-          echo "---"
-          curl -s --ftp-ssl -k --list-only "ftps://${FTP_SERVER}/public_html/" -u "${FTP_USERNAME}:${FTP_PASSWORD}" || true
-
-      - name: Deploy frontend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: darulkitab-frontend/dist/
-          server-dir: public_html/
-          protocol: ftps
-          timeout: 60000
-          exclude: |
-            api/**
-            storage/**
-
-      - name: Deploy backend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: darulkitab-backend/api/
-          server-dir: public_html/api/
-          protocol: ftps
-          timeout: 60000
-          exclude: |
-            **/vendor/bin/**
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftps://$FTP_SERVER" -e "
+            set ssl:verify-certificate no;
+            set ftp:passive-mode yes;
+            set ftp:ssl-protect-data yes;
+            set net:timeout 30;
+            set net:max-retries 3;
+            set net:reconnect-interval-base 5;
+            mirror -R --verbose --no-perms --exclude storage/ darulkitab-frontend/dist/ /public_html/;
+            mirror -R --verbose --no-perms darulkitab-backend/api/ /public_html/api/;
+            bye;
+          "
