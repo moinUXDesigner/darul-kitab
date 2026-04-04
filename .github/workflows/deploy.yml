@@ -47,6 +47,7 @@ jobs:
             set net:max-retries 5;
             set net:reconnect-interval-base 5;
             set net:reconnect-interval-multiplier 1.5;
+            set ssl:verify-certificate no;
 
             # Upload frontend (to public_html root)
             mirror -R --delete --verbose --no-perms darulkitab-frontend/dist/ ./
