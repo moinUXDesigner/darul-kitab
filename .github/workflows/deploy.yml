@@ -49,8 +49,11 @@ jobs:
             set net:reconnect-interval-multiplier 1.5;
             set ssl:verify-certificate no;
 
-            # Upload frontend (to public_html root)
-            mirror -R --delete --verbose --no-perms darulkitab-frontend/dist/ ./
+            # Upload frontend (to public_html root, preserve api/ and storage/)
+            mirror -R --delete --verbose --no-perms \
+            --exclude api/ \
+            --exclude storage/ \
+            darulkitab-frontend/dist/ ./
 
             # Upload backend (to public_html/api)
             mirror -R --delete --verbose --no-perms darulkitab-backend/api/ ./api/
