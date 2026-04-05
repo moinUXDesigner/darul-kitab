@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2 } from 'lucide-react';
+import api from '../api/axios';
+import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { user, logout, isPremium, isAdmin } = useAuth();
@@ -9,6 +10,27 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
   const [audioQuality, setAudioQuality] = useState(isPremium ? 'high' : 'standard');
   const [language, setLanguage] = useState('english');
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, loading: pushLoading, toggle: togglePush, permission: pushPermission } = usePushNotifications();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) return;
+    setFeedbackLoading(true);
+    setFeedbackError('');
+    try {
+      await api.post('user/feedback.php', { query: feedbackText.trim() });
+      setFeedbackSent(true);
+      setFeedbackText('');
+      setTimeout(() => { setFeedbackSent(false); setFeedbackOpen(false); }, 2000);
+    } catch (err: any) {
+      setFeedbackError(err.response?.data?.message || 'Failed to send feedback');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -251,6 +273,49 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
       <section className="mb-6">
         <h3 className="text-lg mb-3">Help & Support</h3>
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <button
+            onClick={() => { setFeedbackOpen(!feedbackOpen); setFeedbackSent(false); setFeedbackError(''); }}
+            className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b border-border"
+          >
+            <MessageSquare className="w-5 h-5 text-primary" />
+            <span className="flex-1 text-left">Send Feedback</span>
+            {feedbackOpen ? <X className="w-4 h-4 text-muted-foreground" /> : null}
+          </button>
+
+          {feedbackOpen && (
+            <div className="p-4 border-b border-border">
+              {feedbackSent ? (
+                <div className="flex items-center gap-2 text-green-600 py-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Thank you for your feedback!</span>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Tell us what you think, report a bug, or suggest a feature..."
+                    maxLength={2000}
+                    rows={4}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">{feedbackText.length}/2000</span>
+                    <button
+                      onClick={handleSubmitFeedback}
+                      disabled={feedbackLoading || !feedbackText.trim()}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {feedbackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Submit
+                    </button>
+                  </div>
+                  {feedbackError && <p className="text-xs text-destructive mt-2">{feedbackError}</p>}
+                </>
+              )}
+            </div>
+          )}
+
           <button className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b border-border">
             <HelpCircle className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">Help Center</span>
