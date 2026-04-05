@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { user, logout, isPremium } = useAuth();
+  const { user, logout, isPremium, isAdmin } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [audioQuality, setAudioQuality] = useState(isPremium ? 'high' : 'standard');
   const [language, setLanguage] = useState('english');
@@ -52,6 +52,23 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
           </div>
         </div>
       </div>
+
+      {/* Admin Panel Access */}
+      {isAdmin && (
+        <section className="mb-6">
+          <h3 className="text-lg mb-3">Administration</h3>
+          <div className="bg-card rounded-2xl border border-violet-500/30 overflow-hidden">
+            <button
+              onClick={() => onNavigate('admin')}
+              className="w-full p-4 flex items-center gap-3 hover:bg-violet-500/5 transition-colors"
+            >
+              <Shield className="w-5 h-5 text-violet-500" />
+              <span className="flex-1 text-left">Admin Dashboard</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500">Admin</span>
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Account Settings */}
       <section className="mb-6">

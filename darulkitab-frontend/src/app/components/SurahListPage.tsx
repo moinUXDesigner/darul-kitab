@@ -98,7 +98,7 @@ export function SurahListPage({
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[70vh] overflow-y-auto">
         {/* {surahs.map((surah) => (
           <div
             key={surah.number}

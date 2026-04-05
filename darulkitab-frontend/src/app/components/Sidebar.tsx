@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, ListMusic } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings, ListMusic, Shield, Users, CreditCard, MessageSquare, IndianRupee } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -8,7 +8,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {
-  const { isPremium } = useAuth();
+  const { isPremium, isAdmin } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -35,7 +35,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = activePage === item.id;
@@ -61,6 +61,43 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             );
           })}
         </ul>
+
+        {/* Admin Section */}
+        {isAdmin && (
+          <>
+            <div className="my-4 border-t border-sidebar-border" />
+            <div className="flex items-center gap-2 px-4 mb-2">
+              <Shield className="w-4 h-4 text-violet-500" />
+              <span className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wider">Admin</span>
+            </div>
+            <ul className="space-y-1">
+              {[
+                { id: 'admin', label: 'Dashboard', icon: Shield },
+                { id: 'admin-users', label: 'Users', icon: Users },
+                { id: 'admin-plans', label: 'Razorpay Plans', icon: CreditCard },
+                { id: 'admin-feedback', label: 'Feedback', icon: MessageSquare },
+                { id: 'admin-settlements', label: 'Settlements', icon: IndianRupee },
+              ].map((item) => {
+                const isActive = activePage === item.id;
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => onNavigate(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm ${
+                        isActive
+                          ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
       </nav>
 
       {/* Premium Banner */}

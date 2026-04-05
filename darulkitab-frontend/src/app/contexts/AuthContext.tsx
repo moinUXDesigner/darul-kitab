@@ -35,6 +35,7 @@ interface AuthContextType {
   refreshPremiumStatus: () => Promise<void>;
   isAuthenticated: boolean;
   isPremium: boolean;
+  isAdmin: boolean;
 }
 
 /* ================================
@@ -180,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshPremiumStatus,
         isAuthenticated: !!user,
         isPremium: user?.is_premium === true,
+        isAdmin: user?.user_role === 'admin',
       }}
     >
       {children}

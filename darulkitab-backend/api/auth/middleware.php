@@ -53,4 +53,21 @@ function authGuard(): object {
   }
 }
 
+/**
+ * Admin guard — verifies JWT and checks user_role === 'admin'.
+ * Returns the decoded token data if admin, otherwise exits with 403.
+ */
+function adminGuard(): object {
+  $user = authGuard();
+  if (!isset($user->user_role) || $user->user_role !== 'admin') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    exit(json_encode([
+      "status" => "error",
+      "message" => "Admin access required"
+    ]));
+  }
+  return $user;
+}
+
 ?>

@@ -19,10 +19,15 @@ import { Sidebar } from './components/Sidebar';
 import { TopNavbar } from './components/TopNavbar';
 import { MobileAppbar } from './components/MobileAppbar';
 import { InstallPrompt, UpdatePrompt } from './components/PwaPrompts';
+import { AdminDashboardPage } from './components/AdminDashboardPage';
+import { AdminUsersPage } from './components/AdminUsersPage';
+import { AdminPlansPage } from './components/AdminPlansPage';
+import { AdminFeedbackPage } from './components/AdminFeedbackPage';
+import { AdminSettlementsPage } from './components/AdminSettlementsPage';
 import { useTheme } from './hooks/useTheme';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   // Read localStorage directly to avoid any timing issues with context
   const [currentPage, setCurrentPage] = useState<string>(() => {
@@ -84,6 +89,12 @@ function AppContent() {
           {currentPage === 'favorites' && <FavoritesPage onNavigate={handleNavigate} />}
           {currentPage === 'subscription' && <SubscriptionPage onNavigate={handleNavigate} />}
           {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
+          {/* Admin Pages (only rendered for admin role) */}
+          {isAdmin && currentPage === 'admin' && <AdminDashboardPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-users' && <AdminUsersPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-plans' && <AdminPlansPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-feedback' && <AdminFeedbackPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-settlements' && <AdminSettlementsPage onNavigate={handleNavigate} />}
         </div>
 
         {/* Mobile Bottom Navigation */}
