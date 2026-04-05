@@ -24,6 +24,7 @@ import { AdminUsersPage } from './components/AdminUsersPage';
 import { AdminPlansPage } from './components/AdminPlansPage';
 import { AdminFeedbackPage } from './components/AdminFeedbackPage';
 import { AdminSettlementsPage } from './components/AdminSettlementsPage';
+import { AdminNotificationsPage } from './components/AdminNotificationsPage';
 import { useTheme } from './hooks/useTheme';
 
 function AppContent() {
@@ -95,6 +96,7 @@ function AppContent() {
           {isAdmin && currentPage === 'admin-plans' && <AdminPlansPage onNavigate={handleNavigate} />}
           {isAdmin && currentPage === 'admin-feedback' && <AdminFeedbackPage onNavigate={handleNavigate} />}
           {isAdmin && currentPage === 'admin-settlements' && <AdminSettlementsPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
         </div>
 
         {/* Mobile Bottom Navigation */}

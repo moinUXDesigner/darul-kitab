@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, ListMusic, Shield, Users, CreditCard, MessageSquare, IndianRupee } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings, ListMusic, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -77,6 +77,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                 { id: 'admin-plans', label: 'Razorpay Plans', icon: CreditCard },
                 { id: 'admin-feedback', label: 'Feedback', icon: MessageSquare },
                 { id: 'admin-settlements', label: 'Settlements', icon: IndianRupee },
+                { id: 'admin-notifications', label: 'Notifications', icon: Bell },
               ].map((item) => {
                 const isActive = activePage === item.id;
                 return (

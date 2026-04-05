@@ -1,12 +1,36 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import { SURAHS, RECITERS, SAMPLE_AYAHS } from '../data/mock-data';
-import { Search as SearchIcon, X, Crown, BookOpen, Headphones, FileText } from 'lucide-react';
+import api from '../api/axios';
+import { Search as SearchIcon, X, Crown, BookOpen, Headphones, FileText, Play } from 'lucide-react';
 
 export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: any) => void }) {
   const { isPremium } = useAuth();
+  const { play } = useAudioPlayer();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'surah' | 'reciter' | 'ayah'>('all');
+
+  const handlePlayAyah = (ayah: typeof SAMPLE_AYAHS[0]) => {
+    if (ayah.isPremium && !isPremium) {
+      onNavigate('subscription');
+      return;
+    }
+    const token = localStorage.getItem('jwt_token') || '';
+    play({
+      id: ayah.streamId,
+      surahNumber: ayah.surahNumber,
+      surahName: ayah.surahName,
+      surahNameArabic: ayah.surahNameArabic,
+      ayahNumber: ayah.ayahNumber,
+      arabicText: ayah.arabicText,
+      translation: ayah.translation,
+      reciter: ayah.reciter,
+      title: `${ayah.surahName} - Ayah ${ayah.ayahNumber}`,
+      audioUrl: `${api.defaults.baseURL}quran/stream.php?id=${ayah.streamId}&token=${encodeURIComponent(token)}`,
+      isPremium: ayah.isPremium,
+    });
+  };
 
   const filteredSurahs = SURAHS.filter(surah =>
     (activeFilter === 'all' || activeFilter === 'surah') &&
@@ -163,6 +187,7 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
                 {filteredAyahs.map((ayah) => (
                   <div
                     key={ayah.id}
+                    onClick={() => handlePlayAyah(ayah)}
                     className="bg-card p-4 rounded-2xl border border-border hover:border-primary transition-colors cursor-pointer"
                   >
                     <div className="mb-3" style={{ fontFamily: 'var(--font-family-arabic)', lineHeight: 1.8 }}>
@@ -173,12 +198,21 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
                       <span className="text-muted-foreground">
                         {ayah.surahName} - Ayah {ayah.ayahNumber}
                       </span>
-                      {ayah.isPremium && !isPremium && (
-                        <span className="flex items-center gap-1 text-accent">
-                          <Crown className="w-3 h-3" />
-                          Premium
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {ayah.isPremium && !isPremium && (
+                          <span className="flex items-center gap-1 text-accent">
+                            <Crown className="w-3 h-3" />
+                            Premium
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handlePlayAyah(ayah); }}
+                          className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                          title="Play ayah"
+                        >
+                          <Play className="w-4 h-4 text-primary" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

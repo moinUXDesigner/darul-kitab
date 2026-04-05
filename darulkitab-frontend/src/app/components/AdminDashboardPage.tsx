@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
 import {
   Users, Crown, CreditCard, MessageSquare, TrendingUp,
-  UserCheck, UserX, AlertTriangle, IndianRupee, ArrowRight
+  UserCheck, UserX, AlertTriangle, IndianRupee, ArrowRight, Bell
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -113,6 +113,13 @@ export function AdminDashboardPage({ onNavigate }: { onNavigate: (page: string) 
           >
             <IndianRupee className="w-5 h-5 text-primary" />
             <span>Razorpay Settlements</span>
+          </button>
+          <button
+            onClick={() => onNavigate('admin-notifications')}
+            className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border hover:border-primary/30 transition-all"
+          >
+            <Bell className="w-5 h-5 text-primary" />
+            <span>Send Notifications</span>
           </button>
         </div>
       </div>

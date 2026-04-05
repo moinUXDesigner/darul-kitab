@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle } from 'lucide-react';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2 } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { user, logout, isPremium, isAdmin } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [audioQuality, setAudioQuality] = useState(isPremium ? 'high' : 'standard');
   const [language, setLanguage] = useState('english');
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, loading: pushLoading, toggle: togglePush, permission: pushPermission } = usePushNotifications();
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -78,16 +80,53 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
             <User className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">Edit Profile</span>
           </button>
-          <button className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b border-border">
-            <Bell className="w-5 h-5 text-primary" />
-            <span className="flex-1 text-left">Notifications</span>
-          </button>
           <button className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors">
             <Shield className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">Privacy & Security</span>
           </button>
         </div>
       </section>
+
+      {/* Push Notifications */}
+      {pushSupported && (
+        <section className="mb-6">
+          <h3 className="text-lg mb-3">Notifications</h3>
+          <div className="bg-card p-4 rounded-2xl border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-primary" />
+                <div>
+                  <span>Push Notifications</span>
+                  <p className="text-xs text-muted-foreground">
+                    {pushPermission === 'denied'
+                      ? 'Blocked in browser settings'
+                      : pushSubscribed
+                        ? 'Receiving notifications'
+                        : 'Get updates about new content'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={togglePush}
+                disabled={pushLoading || pushPermission === 'denied'}
+                className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${
+                  pushSubscribed ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                {pushLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin absolute top-1 left-4" />
+                ) : (
+                  <div
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                      pushSubscribed ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                )}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Appearance */}
       <section className="mb-6">
