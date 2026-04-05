@@ -15,6 +15,8 @@ $data = json_decode(file_get_contents("php://input"), true);
 $audioId         = isset($data['audio_id']) ? (int)$data['audio_id'] : 0;
 $positionSeconds = isset($data['position_seconds']) ? (float)$data['position_seconds'] : 0;
 $durationSeconds = isset($data['duration_seconds']) ? (float)$data['duration_seconds'] : 0;
+$markComplete    = isset($data['mark_complete']) ? (bool)$data['mark_complete'] : false;
+$resetProgress   = isset($data['reset']) ? (bool)$data['reset'] : false;
 
 if ($audioId <= 0) {
     http_response_code(400);
@@ -36,8 +38,17 @@ try {
         exit(json_encode(["message" => "Audio not found"]));
     }
 
-    // Mark completed if position >= 95% of duration
-    $completed = ($durationSeconds > 0 && $positionSeconds >= $durationSeconds * 0.95) ? 1 : 0;
+    // Explicit mark-complete or reset overrides auto-detection
+    if ($resetProgress) {
+        $positionSeconds = 0;
+        $durationSeconds = $durationSeconds ?: 0;
+        $completed = 0;
+    } elseif ($markComplete) {
+        $completed = 1;
+    } else {
+        // Mark completed if position >= 95% of duration
+        $completed = ($durationSeconds > 0 && $positionSeconds >= $durationSeconds * 0.95) ? 1 : 0;
+    }
 
     // Upsert progress
     $stmt = $db->prepare("

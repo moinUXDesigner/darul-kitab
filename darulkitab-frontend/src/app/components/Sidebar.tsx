@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings, ListMusic } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'surah-list', label: 'Surah List', icon: ListMusic },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'library', label: 'Library', icon: Library },
     { id: 'subscription', label: 'Subscription', icon: Crown },
@@ -27,7 +28,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             <span className="text-xl text-primary-foreground">د</span>
           </div>
           <div>
-            <h2 className="text-lg">Darul Kitab</h2>
+            <h2 className="text-lg">Quran Fahmi</h2>
             <p className="text-xs text-sidebar-foreground/60">Audio</p>
           </div>
         </div>

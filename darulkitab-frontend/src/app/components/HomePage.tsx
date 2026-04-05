@@ -34,11 +34,12 @@ interface UserStats {
 
 export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any) => void }) {
   const { user, isPremium } = useAuth();
-  const { play } = useAudioPlayer();
+  const { play, isPlaying } = useAudioPlayer();
   const [continueItems, setContinueItems] = useState<ContinueItem[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const wasPlayingRef = React.useRef(false);
 
-  useEffect(() => {
+  const fetchData = React.useCallback(() => {
     api.get('/user/get-progress.php').then(res => {
       if (Array.isArray(res.data)) setContinueItems(res.data);
     }).catch(() => {});
@@ -47,6 +48,19 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       if (res.data && res.data.level) setStats(res.data);
     }).catch(() => {});
   }, []);
+
+  // Fetch on mount
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Re-fetch when audio pauses (progress was just saved)
+  useEffect(() => {
+    if (wasPlayingRef.current && !isPlaying) {
+      // Small delay to let save-progress complete
+      const t = setTimeout(fetchData, 1000);
+      return () => clearTimeout(t);
+    }
+    wasPlayingRef.current = isPlaying;
+  }, [isPlaying, fetchData]);
 
   const handlePlayAyah = (ayah: typeof SAMPLE_AYAHS[0]) => {
     if (ayah.isPremium && !isPremium) {
@@ -68,93 +82,88 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
 
   return (
     <div className="pb-32 md:pb-8">
-      {/* Hero Section */}
+      {/* Hero + Stats Card */}
       <div className="bg-gradient-to-br from-primary to-secondary p-6 md:p-8 rounded-3xl mb-6 text-white">
+        {/* Top row: name + upgrade/plan badge */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl md:text-3xl mb-1">{user?.user_name || 'User'}</h2>
-            <p className="text-white/80">Continue your spiritual journey</p>
+            <h2 className="text-2xl md:text-3xl mb-0.5">{user?.user_name || 'User'}</h2>
+            <span className="text-sm text-white/70">
+              {isPremium ? 'Premium' : 'Free'} Plan
+            </span>
           </div>
-          {!isPremium && (
+          {!isPremium ? (
             <button
               onClick={() => onNavigate('subscription')}
-              className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-full hover:bg-accent/90 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-full hover:bg-accent/90 transition-colors text-sm"
             >
               <Crown className="w-4 h-4" />
-              <span className="hidden sm:inline">Upgrade</span>
+              Upgrade
             </button>
+          ) : (
+            <span className="px-3 py-1 bg-white/15 rounded-full text-xs font-medium">Pro</span>
           )}
         </div>
-        <div className="flex gap-4 text-sm">
-          <div>
-            <div className="opacity-80">Plan</div>
-            <div>{isPremium ? 'Premium' : 'Free'}</div>
-          </div>
-          <div>
-            <div className="opacity-80">Reciters</div>
-            <div>{isPremium ? 'All' : '3'}</div>
-          </div>
-        </div>
-      </div>
 
-      {/* User Level & Stats */}
-      {stats && (
-        <section className="mb-8">
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Award className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg">{stats.level.name}</h3>
-                  <span className="text-sm text-muted-foreground" style={{ fontFamily: 'var(--font-family-arabic)' }}>
-                    {stats.level.name_ar}
-                  </span>
-                </div>
-                {stats.next_level && (
-                  <p className="text-xs text-muted-foreground">
-                    {stats.overall_percent}% complete • Next: {stats.next_level.name} at {stats.next_level.min}%
-                  </p>
-                )}
-              </div>
+        {/* Level + progress */}
+        {stats && (
+          <>
+            <div className="flex items-center gap-2 mb-2">
+              <Award className="w-4 h-4 text-white/80" />
+              <span className="text-sm font-medium">{stats.level.name}</span>
+              <span className="text-xs text-white/60" style={{ fontFamily: 'var(--font-family-arabic)' }}>
+                {stats.level.name_ar}
+              </span>
+              <span className="text-xs text-white/60 ml-auto">
+                {stats.overall_percent}%
+                {stats.next_level && ` · ${stats.next_level.name} at ${stats.next_level.min}%`}
+              </span>
             </div>
-            {/* Progress bar */}
-            <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
+            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
               <div
-                className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all"
+                className="h-full bg-white rounded-full transition-all"
                 style={{ width: `${Math.min(100, stats.overall_percent)}%` }}
               />
             </div>
-            {/* Quick stats */}
-            <div className="grid grid-cols-4 gap-3 text-center">
+
+            {/* Stats row */}
+            <div className="grid grid-cols-4 gap-2 text-center">
               <div>
                 <div className="text-lg font-semibold">{stats.completed_tracks}</div>
-                <div className="text-xs text-muted-foreground">Completed</div>
+                <div className="text-[11px] text-white/60">Completed</div>
               </div>
               <div>
                 <div className="text-lg font-semibold">{stats.completed_surahs}</div>
-                <div className="text-xs text-muted-foreground">Surahs</div>
+                <div className="text-[11px] text-white/60">Surahs</div>
               </div>
               <div>
                 <div className="text-lg font-semibold">{stats.total_listening_hours}h</div>
-                <div className="text-xs text-muted-foreground">Listened</div>
+                <div className="text-[11px] text-white/60">Listened</div>
               </div>
               <div>
                 <div className="text-lg font-semibold">{stats.favorites_count}</div>
-                <div className="text-xs text-muted-foreground">Favorites</div>
+                <div className="text-[11px] text-white/60">Favorites</div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </>
+        )}
+      </div>
 
       {/* Continue Listening — real data from API */}
       <section className="mb-8">
-        <h3 className="text-xl mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
+        <div className="flex items-center justify-between mb-4">
+          
+          <h3 className="text-xl mb-4 flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-primary" />
           Continue Listening
         </h3>
+          <button
+            onClick={() => onNavigate('surah-list')}
+            className="text-sm text-primary hover:underline"
+          >
+            View All
+          </button>
+        </div>
         {continueItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {continueItems.map((item) => {
@@ -242,7 +251,7 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       </section>
 
       {/* Popular Reciters */}
-      <section className="mb-8">
+      <section className="mb-8 hidden">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />
@@ -272,7 +281,7 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       </section>
 
       {/* Surah Collections */}
-      <section className="mb-8">
+      <section className="mb-8 hidden">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary" />
@@ -305,7 +314,7 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       </section>
 
       {/* Daily Ayah */}
-      <section>
+      <section className='hidden'>
         <h3 className="text-xl mb-4">Daily Ayah</h3>
         <div className="bg-card p-6 rounded-2xl border border-border">
           <div className="text-center mb-4" style={{ fontFamily: 'var(--font-family-arabic)', lineHeight: 1.8 }}>

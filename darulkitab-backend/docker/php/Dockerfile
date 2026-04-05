@@ -1,18 +1,19 @@
 FROM php:8.2-apache
 
-# Enable rewrite
-RUN a2enmod rewrite
+# Enable required Apache modules
+RUN a2enmod rewrite headers setenvif
 
-# Explicitly allow access to document root
+# Explicitly allow access to document root and pass Authorization header
 RUN printf '<Directory /var/www/html>\n\
     AllowOverride All\n\
     Require all granted\n\
-</Directory>\n' >> /etc/apache2/apache2.conf
+</Directory>\n\
+\n\
+# Ensure Authorization header reaches PHP\n\
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1\n' >> /etc/apache2/apache2.conf
 
 # PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql mysqli
-
-RUN a2enmod headers rewrite
 
 # Upload limits
 RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \

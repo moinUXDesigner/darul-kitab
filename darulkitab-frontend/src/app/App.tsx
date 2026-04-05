@@ -16,9 +16,14 @@ import { MiniPlayer } from './components/MiniPlayer';
 import { FullPlayer } from './components/FullPlayer';
 import { BottomNav } from './components/BottomNav';
 import { Sidebar } from './components/Sidebar';
+import { TopNavbar } from './components/TopNavbar';
+import { MobileAppbar } from './components/MobileAppbar';
+import { InstallPrompt, UpdatePrompt } from './components/PwaPrompts';
+import { useTheme } from './hooks/useTheme';
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   // Read localStorage directly to avoid any timing issues with context
   const [currentPage, setCurrentPage] = useState<string>(() => {
     const storedUser = localStorage.getItem('user');
@@ -62,6 +67,12 @@ function AppContent() {
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
+        {/* Desktop Top Navbar */}
+        <TopNavbar theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} />
+
+        {/* Mobile Appbar */}
+        <MobileAppbar theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} />
+
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
           {currentPage === 'home' && <HomePage onNavigate={handleNavigate} />}
           {currentPage === 'search' && <SearchPage onNavigate={handleNavigate} />}
@@ -83,6 +94,10 @@ function AppContent() {
 
         {/* Full Player */}
         <FullPlayer onNavigate={handleNavigate} />
+
+        {/* PWA Prompts */}
+        <InstallPrompt />
+        <UpdatePrompt />
       </main>
     </div>
   );

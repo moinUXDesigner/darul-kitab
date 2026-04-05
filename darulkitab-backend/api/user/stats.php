@@ -45,7 +45,8 @@ try {
             s.english_name,
             s.arabic_name,
             COUNT(DISTINCT qa.id) as total_tracks,
-            COUNT(DISTINCT CASE WHEN lp.completed = 1 THEN lp.audio_id END) as completed_tracks
+            COUNT(DISTINCT CASE WHEN lp.completed = 1 THEN lp.audio_id END) as completed_tracks,
+            COUNT(DISTINCT CASE WHEN lp.completed = 0 AND lp.position_seconds > 0 THEN lp.audio_id END) as in_progress_tracks
         FROM quran_audio qa
         JOIN surahs s ON s.id = qa.surah_no
         LEFT JOIN listening_progress lp ON lp.audio_id = qa.id AND lp.user_id = ?

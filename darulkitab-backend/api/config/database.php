@@ -29,16 +29,15 @@ class Database
         // Production: Use "localhost" with production credentials
         if ($server === 'localhost' || $server === '127.0.0.1') {
             // LOCAL ENVIRONMENT
-            // --- Docker or XAMPP switch ---
-            // Set $useDocker = true if running in Docker, false for XAMPP
-            $useDocker = false; // CHANGE THIS TO true IF USING DOCKER
+            // Auto-detect Docker: the "db" hostname resolves inside docker-compose
+            $isDocker = (getenv('DOCKER_ENV') === 'true') || @gethostbyname('db') !== 'db';
 
-            if ($useDocker) {
+            if ($isDocker) {
                 $this->host = "db"; // Docker service name
             } else {
                 $this->host = "localhost"; // XAMPP or similar
             }
-            $this->db   = "darulkitab_db";
+            $this->db   = "u484303972_darulkitab_db";
             $this->user = "root";
             $this->pass = "root";
         } else {

@@ -185,7 +185,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useAudioPlayer, AyahData } from "../contexts/AudioPlayerContext";
-import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock } from "lucide-react";
+import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock, RotateCcw, CircleCheck } from "lucide-react";
 
 /* ================================
    TYPES (MATCH DB)
@@ -225,6 +225,7 @@ export function SurahDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [progressMap, setProgressMap] = useState<Record<number, { position: number; duration: number; completed: boolean }>>({});
+  const [confirmAction, setConfirmAction] = useState<{ audioId: number; type: 'complete' | 'reset' } | null>(null);
 
   useEffect(() => {
     const fetchAyahs = async () => {
@@ -259,6 +260,29 @@ export function SurahDetailPage({
       }
     }).catch(() => {});
   }, [surah.id]);
+
+  const handleMarkComplete = async (audioId: number) => {
+    try {
+      await api.post('/user/save-progress.php', { audio_id: audioId, mark_complete: true });
+      setProgressMap(prev => ({
+        ...prev,
+        [audioId]: { position: prev[audioId]?.duration || 0, duration: prev[audioId]?.duration || 0, completed: true },
+      }));
+    } catch { /* silent */ }
+    setConfirmAction(null);
+  };
+
+  const handleReset = async (audioId: number) => {
+    try {
+      await api.post('/user/save-progress.php', { audio_id: audioId, reset: true });
+      setProgressMap(prev => {
+        const next = { ...prev };
+        delete next[audioId];
+        return next;
+      });
+    } catch { /* silent */ }
+    setConfirmAction(null);
+  };
 
   const buildAyahData = (audio: AyahAudio): AyahData => {
     const token = localStorage.getItem('jwt_token') || '';
@@ -375,26 +399,86 @@ export function SurahDetailPage({
                 <div className="text-sm text-muted-foreground">
                   Reciter: {audio.reciter || "Unknown"}
                 </div>
-                {prog && !prog.completed && prog.position > 0 && (
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[200px]">
-                      <div
-                        className="h-full bg-primary rounded-full"
-                        style={{ width: `${trackPct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${trackPct}%` }}
+                    />
+                  </div>
+                  {prog && prog.position > 0 && !prog.completed && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                       <Clock className="w-3 h-3" />
                       {Math.floor(prog.position / 60)}:{Math.floor(prog.position % 60).toString().padStart(2, '0')}
                     </span>
-                  </div>
-                )}
+                  )}
+                  {prog?.completed && (
+                    <span className="text-xs text-green-500 whitespace-nowrap">Done</span>
+                  )}
+                </div>
               </div>
-              <Play className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
+              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                {!prog?.completed && (
+                  <button
+                    title="Mark as complete"
+                    onClick={(e) => { e.stopPropagation(); setConfirmAction({ audioId: audio.id, type: 'complete' }); }}
+                    className="p-1.5 rounded-lg hover:bg-green-500/10 text-muted-foreground hover:text-green-500 transition-colors"
+                  >
+                    <CircleCheck className="w-4 h-4" />
+                  </button>
+                )}
+                {prog && (prog.position > 0 || prog.completed) && (
+                  <button
+                    title="Reset progress"
+                    onClick={(e) => { e.stopPropagation(); setConfirmAction({ audioId: audio.id, type: 'reset' }); }}
+                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+                <Play className="w-4 h-4 text-primary" />
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmAction(null)}>
+          <div className="bg-card rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl border border-border" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-medium mb-2">
+              {confirmAction.type === 'complete' ? 'Mark as Complete?' : 'Reset Progress?'}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              {confirmAction.type === 'complete'
+                ? 'This will mark this track as fully listened.'
+                : 'This will reset all listening progress for this track to zero.'}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 rounded-xl border border-border hover:bg-muted transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmAction.type === 'complete'
+                  ? handleMarkComplete(confirmAction.audioId)
+                  : handleReset(confirmAction.audioId)
+                }
+                className={`px-4 py-2 rounded-xl text-white text-sm transition-colors ${
+                  confirmAction.type === 'complete'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmAction.type === 'complete' ? 'Mark Complete' : 'Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
