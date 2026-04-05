@@ -89,5 +89,92 @@ if ($method === 'POST') {
     exit;
 }
 
+if ($method === 'PUT') {
+    // ─── Update plan in local DB ───
+    // Note: Razorpay plans cannot be modified after creation.
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $planId = (int)($input['id'] ?? 0);
+    $price = isset($input['price']) ? (float)$input['price'] : null;
+    $durationDays = isset($input['duration_days']) ? (int)$input['duration_days'] : null;
+
+    if ($planId <= 0) {
+        http_response_code(400);
+        exit(json_encode(["status" => "error", "message" => "Plan ID is required"]));
+    }
+
+    // Check plan exists
+    $check = $db->prepare("SELECT id FROM subscription_plans WHERE id = ?");
+    $check->execute([$planId]);
+    if (!$check->fetch()) {
+        http_response_code(404);
+        exit(json_encode(["status" => "error", "message" => "Plan not found"]));
+    }
+
+    $updates = [];
+    $params = [];
+
+    if ($price !== null && $price >= 0) {
+        $updates[] = "price = ?";
+        $params[] = $price;
+    }
+    if ($durationDays !== null && $durationDays >= 0) {
+        $updates[] = "duration_days = ?";
+        $params[] = $durationDays;
+    }
+
+    if (empty($updates)) {
+        http_response_code(400);
+        exit(json_encode(["status" => "error", "message" => "No fields to update"]));
+    }
+
+    $params[] = $planId;
+    $stmt = $db->prepare("UPDATE subscription_plans SET " . implode(', ', $updates) . " WHERE id = ?");
+    $stmt->execute($params);
+
+    echo json_encode(["status" => "success", "message" => "Plan updated successfully"]);
+    exit;
+}
+
+if ($method === 'DELETE') {
+    // ─── Delete plan from local DB ───
+    $planId = (int)($_GET['id'] ?? 0);
+
+    if ($planId <= 0) {
+        http_response_code(400);
+        exit(json_encode(["status" => "error", "message" => "Plan ID is required"]));
+    }
+
+    // Prevent deleting the Free plan (id=1)
+    if ($planId === 1) {
+        http_response_code(400);
+        exit(json_encode(["status" => "error", "message" => "Cannot delete the Free plan"]));
+    }
+
+    // Check for active subscriptions using this plan
+    $activeSubs = $db->prepare("SELECT COUNT(*) FROM user_subscriptions WHERE plan_id = ? AND status = 'active'");
+    $activeSubs->execute([$planId]);
+    $count = (int)$activeSubs->fetchColumn();
+
+    if ($count > 0) {
+        http_response_code(409);
+        exit(json_encode([
+            "status" => "error",
+            "message" => "Cannot delete: $count active subscription(s) are using this plan",
+        ]));
+    }
+
+    $stmt = $db->prepare("DELETE FROM subscription_plans WHERE id = ?");
+    $stmt->execute([$planId]);
+
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        exit(json_encode(["status" => "error", "message" => "Plan not found"]));
+    }
+
+    echo json_encode(["status" => "success", "message" => "Plan deleted successfully"]);
+    exit;
+}
+
 http_response_code(405);
 echo json_encode(["status" => "error", "message" => "Method not allowed"]);
