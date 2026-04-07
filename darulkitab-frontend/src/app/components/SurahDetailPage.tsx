@@ -182,7 +182,7 @@
 // }
 
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 import { useAudioPlayer, AyahData } from "../contexts/AudioPlayerContext";
 import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock, RotateCcw, CircleCheck } from "lucide-react";
@@ -219,13 +219,30 @@ export function SurahDetailPage({
   surah: Surah;
   onNavigate: (page: string, data?: any) => void;
 }) {
-  const { play, playQueue } = useAudioPlayer();
+  const { play, playQueue, isPlaying, currentAyah, currentTime, duration } = useAudioPlayer();
 
   const [ayahAudios, setAyahAudios] = useState<AyahAudio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [progressMap, setProgressMap] = useState<Record<number, { position: number; duration: number; completed: boolean }>>({});
   const [confirmAction, setConfirmAction] = useState<{ audioId: number; type: 'complete' | 'reset' } | null>(null);
+  const wasPlayingRef = useRef(false);
+
+  const fetchProgress = useCallback(() => {
+    api.get(`/user/get-progress.php?surah_no=${surah.id}`).then(res => {
+      if (Array.isArray(res.data)) {
+        const map: Record<number, { position: number; duration: number; completed: boolean }> = {};
+        for (const p of res.data) {
+          map[p.audio_id] = {
+            position: Number(p.position_seconds),
+            duration: Number(p.duration_seconds),
+            completed: !!p.completed,
+          };
+        }
+        setProgressMap(map);
+      }
+    }).catch(() => {});
+  }, [surah.id]);
 
   useEffect(() => {
     const fetchAyahs = async () => {
@@ -246,20 +263,17 @@ export function SurahDetailPage({
 
   // Fetch progress for this surah
   useEffect(() => {
-    api.get(`/user/get-progress.php?surah_no=${surah.id}`).then(res => {
-      if (Array.isArray(res.data)) {
-        const map: Record<number, { position: number; duration: number; completed: boolean }> = {};
-        for (const p of res.data) {
-          map[p.audio_id] = {
-            position: Number(p.position_seconds),
-            duration: Number(p.duration_seconds),
-            completed: !!p.completed,
-          };
-        }
-        setProgressMap(map);
-      }
-    }).catch(() => {});
-  }, [surah.id]);
+    fetchProgress();
+  }, [fetchProgress]);
+
+  useEffect(() => {
+    if (wasPlayingRef.current && !isPlaying) {
+      const timeoutId = setTimeout(fetchProgress, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+
+    wasPlayingRef.current = isPlaying;
+  }, [fetchProgress, isPlaying]);
 
   const handleMarkComplete = async (audioId: number) => {
     try {
@@ -311,10 +325,41 @@ export function SurahDetailPage({
     }
   };
 
+  const getEffectiveProgress = (audio: AyahAudio) => {
+    const saved = progressMap[audio.id];
+    const isCurrentTrack = currentAyah?.id === audio.id && currentAyah?.surahNumber === surah.id;
+
+    if (!isCurrentTrack) {
+      return saved;
+    }
+
+    const liveDuration = Number(duration || audio.duration_seconds || saved?.duration || 0);
+    const livePosition = Number(currentTime || saved?.position || 0);
+    const effectivePosition = liveDuration > 0
+      ? Math.min(livePosition, liveDuration)
+      : livePosition;
+
+    return {
+      position: Math.max(saved?.position || 0, effectivePosition),
+      duration: liveDuration,
+      completed: saved?.completed || (liveDuration > 0 && effectivePosition >= liveDuration * 0.95) || false,
+    };
+  };
+
   // Calculate surah-level progress
   const totalTracks = ayahAudios.length;
-  const completedTracks = Object.values(progressMap).filter(p => p.completed).length;
-  const surahProgressPct = totalTracks > 0 ? Math.round((completedTracks / totalTracks) * 100) : 0;
+  const completedTracks = ayahAudios.filter(audio => getEffectiveProgress(audio)?.completed).length;
+  const totalDuration = ayahAudios.reduce((sum, audio) => sum + Number(audio.duration_seconds || 0), 0);
+  const listenedDuration = ayahAudios.reduce((sum, audio) => {
+    const prog = getEffectiveProgress(audio);
+    const trackDuration = Number(audio.duration_seconds || prog?.duration || 0);
+    if (!prog) return sum;
+    if (prog.completed) return sum + trackDuration;
+    return sum + Math.min(Number(prog.position || 0), trackDuration);
+  }, 0);
+  const surahProgressPct = totalDuration > 0
+    ? Math.round((Math.min(listenedDuration, totalDuration) / totalDuration) * 100)
+    : 0;
 
   if (loading) {
     return <div className="text-center py-20">Loading ayahs…</div>;
@@ -375,7 +420,7 @@ export function SurahDetailPage({
       {/* Ayah Audio List */}
       <div className="space-y-3">
         {ayahAudios.map((audio) => {
-          const prog = progressMap[audio.id];
+          const prog = getEffectiveProgress(audio);
           const trackPct = prog && prog.duration > 0
             ? Math.round((prog.position / prog.duration) * 100)
             : 0;

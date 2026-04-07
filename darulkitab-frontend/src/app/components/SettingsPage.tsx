@@ -338,7 +338,7 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
 
       <div className="mt-6 text-center text-sm text-muted-foreground">
         <p>Version 1.0.0</p>
-        <p className="mt-1">© 2026 Darul Kitab Audio</p>
+        <p className="mt-1">© {new Date().getFullYear()} Quran Fahmi Audio</p>
       </div>
     </div>
   );

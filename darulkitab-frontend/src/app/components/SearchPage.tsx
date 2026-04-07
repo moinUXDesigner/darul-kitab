@@ -100,7 +100,7 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
       {!searchQuery ? (
         <div className="text-center py-12">
           <SearchIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl mb-2">Search Darul Kitab</h3>
+          <h3 className="text-xl mb-2">Search Quran Fahmi</h3>
           <p className="text-muted-foreground">Find your favorite surahs, reciters, and ayahs</p>
         </div>
       ) : !hasResults ? (

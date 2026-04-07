@@ -1,7 +1,8 @@
 // components/SurahListPage.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
-import { BookOpen, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useAudioPlayer } from '../contexts/AudioPlayerContext';
+import { CheckCircle2 } from 'lucide-react';
 
 /* ================================
    TYPES
@@ -32,10 +33,35 @@ export function SurahListPage({
 }: {
   onNavigate: (page: string, data?: any) => void;
 }) {
+  const { isPlaying } = useAudioPlayer();
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [progressMap, setProgressMap] = useState<Record<number, { total: number; completed: number; inProgress: number }>>({});
+  const [progressMap, setProgressMap] = useState<Record<number, { total: number; completed: number; inProgress: number; percent: number }>>({});
+  const wasPlayingRef = useRef(false);
+
+  const fetchSurahProgress = useCallback(() => {
+    const token = localStorage.getItem('jwt_token');
+    if (!token) {
+      setProgressMap({});
+      return;
+    }
+
+    api.get('/user/stats.php').then(res => {
+      if (res.data?.surah_progress) {
+        const map: Record<number, { total: number; completed: number; inProgress: number; percent: number }> = {};
+        for (const s of res.data.surah_progress) {
+          map[Number(s.surah_no)] = {
+            total: Number(s.total_tracks),
+            completed: Number(s.completed_tracks),
+            inProgress: Number(s.in_progress_tracks || 0),
+            percent: Number(s.progress_percent || 0),
+          };
+        }
+        setProgressMap(map);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchSurahs = async () => {
@@ -53,25 +79,17 @@ export function SurahListPage({
     };
 
     fetchSurahs();
+    fetchSurahProgress();
+  }, [fetchSurahProgress]);
 
-    // Fetch per-surah progress
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-      api.get('/user/stats.php').then(res => {
-        if (res.data?.surah_progress) {
-          const map: Record<number, { total: number; completed: number; inProgress: number }> = {};
-          for (const s of res.data.surah_progress) {
-            map[Number(s.surah_no)] = {
-              total: Number(s.total_tracks),
-              completed: Number(s.completed_tracks),
-              inProgress: Number(s.in_progress_tracks || 0),
-            };
-          }
-          setProgressMap(map);
-        }
-      }).catch(() => {});
+  useEffect(() => {
+    if (wasPlayingRef.current && !isPlaying) {
+      const timeoutId = setTimeout(fetchSurahProgress, 1000);
+      return () => clearTimeout(timeoutId);
     }
-  }, []);
+
+    wasPlayingRef.current = isPlaying;
+  }, [fetchSurahProgress, isPlaying]);
 
   if (loading) {
     return (
@@ -147,8 +165,8 @@ export function SurahListPage({
 
         {surahs.map((surah) => {
   const prog = progressMap[surah.id];
-  const pct = prog && prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0;
-  const isComplete = prog && prog.total > 0 && prog.completed === prog.total;
+  const pct = prog ? Math.min(100, Math.max(0, prog.percent)) : 0;
+  const isComplete = !!prog && prog.total > 0 && prog.completed === prog.total;
   const isInProgress = prog && (prog.completed > 0 || prog.inProgress > 0);
 
   return (
