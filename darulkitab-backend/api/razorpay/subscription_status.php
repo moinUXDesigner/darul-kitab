@@ -31,7 +31,12 @@ $stmt = $db->prepare("
         us.razorpay_subscription_id,
         us.start_date,
         us.end_date,
-        sp.name AS plan_name,
+        COALESCE(NULLIF(sp.name, ''), CASE
+            WHEN sp.id = 2 THEN 'Monthly'
+            WHEN sp.id = 3 THEN 'Yearly'
+            WHEN sp.id = 1 THEN 'Free'
+            ELSE sp.name
+        END) AS plan_name,
         sp.price,
         sp.duration_days
     FROM user_subscriptions us

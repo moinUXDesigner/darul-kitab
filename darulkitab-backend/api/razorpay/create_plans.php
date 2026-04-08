@@ -46,6 +46,9 @@ $plans = [
 $results = [];
 
 foreach ($plans as $plan) {
+    $localName = $plan['db_plan_id'] === 2 ? 'Monthly' : 'Yearly';
+    $durationDays = $plan['db_plan_id'] === 2 ? 30 : 365;
+
     // Create plan in Razorpay
     $response = razorpayRequest('POST', 'plans', [
         'period' => $plan['period'],
@@ -72,12 +75,14 @@ foreach ($plans as $plan) {
     // Update DB with Razorpay plan ID
     $stmt = $db->prepare("
         UPDATE subscription_plans 
-        SET razorpay_plan_id = ?, price = ?, updated_at = NOW()
+        SET razorpay_plan_id = ?, price = ?, name = ?, duration_days = ?, updated_at = NOW()
         WHERE id = ?
     ");
     $stmt->execute([
         $razorpayPlanId,
         $plan['amount'] / 100, // Store in rupees
+        $localName,
+        $durationDays,
         $plan['db_plan_id'],
     ]);
 

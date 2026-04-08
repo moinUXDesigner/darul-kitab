@@ -31,7 +31,18 @@ if (!in_array($planId, [2, 3])) {
 $db = (new Database())->connect();
 
 // Get Razorpay plan ID from DB
-$stmt = $db->prepare("SELECT razorpay_plan_id, name, price FROM subscription_plans WHERE id = ?");
+$stmt = $db->prepare("
+    SELECT
+        razorpay_plan_id,
+        COALESCE(NULLIF(name, ''), CASE
+            WHEN id = 2 THEN 'Monthly'
+            WHEN id = 3 THEN 'Yearly'
+            ELSE name
+        END) AS name,
+        price
+    FROM subscription_plans
+    WHERE id = ?
+");
 $stmt->execute([$planId]);
 $plan = $stmt->fetch(PDO::FETCH_ASSOC);
 

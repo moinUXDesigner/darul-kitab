@@ -17,22 +17,61 @@ $db = (new Database())->connect();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+function localPlanMeta(int $dbPlanId, string $period = ''): array {
+    if ($dbPlanId === 1) {
+        return ['name' => 'Free', 'duration_days' => 0, 'period' => 'free'];
+    }
+
+    if ($dbPlanId === 2 || $period === 'monthly') {
+        return ['name' => 'Monthly', 'duration_days' => 30, 'period' => 'monthly'];
+    }
+
+    if ($dbPlanId === 3 || $period === 'yearly') {
+        return ['name' => 'Yearly', 'duration_days' => 365, 'period' => 'yearly'];
+    }
+
+    return ['name' => '', 'duration_days' => null, 'period' => $period];
+}
+
 if ($method === 'GET') {
     // ─── List plans from DB + fetch live status from Razorpay ───
-    $stmt = $db->query("SELECT id, name, price, duration_days, razorpay_plan_id, created_at FROM subscription_plans ORDER BY id");
+    $stmt = $db->query("
+        SELECT
+            sp.id,
+            COALESCE(NULLIF(sp.name, ''), CASE
+                WHEN sp.id = 1 THEN 'Free'
+                WHEN sp.id = 2 THEN 'Monthly'
+                WHEN sp.id = 3 THEN 'Yearly'
+                ELSE CONCAT('Plan ', sp.id)
+            END) AS name,
+            sp.price,
+            sp.duration_days,
+            sp.razorpay_plan_id,
+            sp.created_at,
+            (
+                SELECT COUNT(*)
+                FROM user_subscriptions us
+                WHERE us.plan_id = sp.id AND us.status = 'active'
+            ) AS active_subscriptions
+        FROM subscription_plans sp
+        ORDER BY sp.id
+    ");
     $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Optionally fetch live info from Razorpay for each plan that has a razorpay_plan_id
     foreach ($plans as &$plan) {
         if (!empty($plan['razorpay_plan_id'])) {
             $rpPlan = razorpayRequest('GET', 'plans/' . $plan['razorpay_plan_id']);
-            if (!isset($rpPlan['error'])) {
+            if (!razorpayHasError($rpPlan)) {
                 $plan['razorpay_status'] = $rpPlan['item']['active'] ?? null;
                 $plan['razorpay_name'] = $rpPlan['item']['name'] ?? null;
                 $plan['razorpay_amount'] = isset($rpPlan['item']['amount']) ? $rpPlan['item']['amount'] / 100 : null;
                 $plan['razorpay_period'] = $rpPlan['period'] ?? null;
             }
         }
+
+        $plan['active_subscriptions'] = (int)($plan['active_subscriptions'] ?? 0);
+        $plan['can_delete'] = ((int)$plan['id'] !== 1) && $plan['active_subscriptions'] === 0;
     }
     unset($plan);
 
@@ -56,6 +95,30 @@ if ($method === 'POST') {
         exit(json_encode(["status" => "error", "message" => "name, amount (paise) and db_plan_id are required"]));
     }
 
+    if (!in_array($dbPlanId, [2, 3], true)) {
+        http_response_code(400);
+        exit(json_encode([
+            "status" => "error",
+            "message" => "Only DB plan 2 (Monthly) and 3 (Yearly) can be linked to Razorpay",
+        ]));
+    }
+
+    $expectedPeriod = $dbPlanId === 2 ? 'monthly' : 'yearly';
+    if ($period !== $expectedPeriod) {
+        http_response_code(400);
+        exit(json_encode([
+            "status" => "error",
+            "message" => "DB plan $dbPlanId must use the $expectedPeriod billing period",
+        ]));
+    }
+
+    $check = $db->prepare("SELECT id FROM subscription_plans WHERE id = ?");
+    $check->execute([$dbPlanId]);
+    if (!$check->fetch()) {
+        http_response_code(404);
+        exit(json_encode(["status" => "error", "message" => "DB plan not found"]));
+    }
+
     $response = razorpayRequest('POST', 'plans', [
         'period' => $period,
         'interval' => $interval,
@@ -76,15 +139,27 @@ if ($method === 'POST') {
     }
 
     $razorpayPlanId = $response['id'];
+    $localMeta = localPlanMeta($dbPlanId, $period);
 
-    $stmt = $db->prepare("UPDATE subscription_plans SET razorpay_plan_id = ?, price = ? WHERE id = ?");
-    $stmt->execute([$razorpayPlanId, $amount / 100, $dbPlanId]);
+    $stmt = $db->prepare("
+        UPDATE subscription_plans
+        SET razorpay_plan_id = ?, price = ?, name = ?, duration_days = ?
+        WHERE id = ?
+    ");
+    $stmt->execute([
+        $razorpayPlanId,
+        $amount / 100,
+        $localMeta['name'],
+        $localMeta['duration_days'],
+        $dbPlanId
+    ]);
 
     echo json_encode([
         "status" => "success",
         "message" => "Plan created successfully",
         "razorpay_plan_id" => $razorpayPlanId,
         "amount" => '₹' . ($amount / 100),
+        "local_name" => $localMeta['name'],
     ]);
     exit;
 }

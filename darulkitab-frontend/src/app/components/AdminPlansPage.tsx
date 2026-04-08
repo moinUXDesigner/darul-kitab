@@ -9,6 +9,8 @@ interface Plan {
   duration_days: number | null;
   razorpay_plan_id: string | null;
   created_at: string;
+  active_subscriptions?: number;
+  can_delete?: boolean;
   razorpay_status?: boolean;
   razorpay_name?: string;
   razorpay_amount?: number;
@@ -30,7 +32,6 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
     period: 'monthly',
     interval: 1,
     amount: '',
-    db_plan_id: '',
   });
 
   // Edit plan
@@ -67,10 +68,10 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
         interval: form.interval,
         amount: Math.round(parseFloat(form.amount) * 100), // Convert rupees to paise
         currency: 'INR',
-        db_plan_id: parseInt(form.db_plan_id),
+        db_plan_id: form.period === 'monthly' ? 2 : 3,
       });
       setFormSuccess(`Plan created! Razorpay ID: ${res.data.razorpay_plan_id}`);
-      setForm({ name: '', period: 'monthly', interval: 1, amount: '', db_plan_id: '' });
+      setForm({ name: '', period: 'monthly', interval: 1, amount: '' });
       fetchPlans();
     } catch (err: any) {
       setFormError(err?.response?.data?.message || 'Failed to create plan');
@@ -120,6 +121,8 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
     }
   };
 
+  const selectedDbPlanId = form.period === 'monthly' ? 2 : 3;
+
   return (
     <div className="pb-32 md:pb-8">
       {/* Header */}
@@ -166,8 +169,6 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
                   onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-muted border border-border outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
                 </select>
@@ -188,16 +189,17 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">DB Plan ID</label>
                 <input
-                  type="number"
-                  value={form.db_plan_id}
-                  onChange={e => setForm(f => ({ ...f, db_plan_id: e.target.value }))}
-                  placeholder="e.g. 2 for Monthly, 3 for Yearly"
-                  min="1"
-                  className="w-full px-3 py-2 rounded-xl bg-muted border border-border outline-none focus:ring-2 focus:ring-primary/50"
-                  required
+                  type="text"
+                  value={`${selectedDbPlanId} (${form.period === 'monthly' ? 'Monthly' : 'Yearly'})`}
+                  className="w-full px-3 py-2 rounded-xl bg-muted border border-border text-muted-foreground outline-none"
+                  disabled
                 />
               </div>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              This app supports two paid plans only: Monthly maps to DB plan `2`, and Yearly maps to DB plan `3`.
+            </p>
 
             {formError && (
               <div className="flex items-center gap-2 text-sm text-destructive">
@@ -243,14 +245,19 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {plans.map(plan => (
+          {plans.map(plan => {
+            const displayName = plan.name?.trim() || plan.razorpay_name || `Plan ${plan.id}`;
+            const activeSubscriptions = plan.active_subscriptions ?? 0;
+            const canDelete = plan.can_delete ?? (plan.id !== 1 && activeSubscriptions === 0);
+
+            return (
             <div key={plan.id} className="bg-card p-5 rounded-2xl border border-border">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">{plan.name}</h3>
+                  <h3 className="font-semibold">{displayName}</h3>
                   <p className="text-xs text-muted-foreground">ID: {plan.id}</p>
                 </div>
                 {editingId !== plan.id && deletingId !== plan.id && (
@@ -262,7 +269,7 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
                     >
                       <Pencil className="w-4 h-4 text-muted-foreground" />
                     </button>
-                    {plan.id !== 1 && (
+                    {canDelete && (
                       <button
                         onClick={() => { setDeletingId(plan.id); setDeleteError(null); }}
                         className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors"
@@ -274,6 +281,12 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
                   </div>
                 )}
               </div>
+
+              {activeSubscriptions > 0 && (
+                <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                  In use by {activeSubscriptions} active subscription{activeSubscriptions === 1 ? '' : 's'}. Delete is disabled.
+                </div>
+              )}
 
               {/* Delete confirmation */}
               {deletingId === plan.id && (
@@ -369,6 +382,12 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
                       {plan.razorpay_plan_id || '—'}
                     </span>
                   </div>
+                  {plan.razorpay_name && plan.razorpay_name !== displayName && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">Razorpay Name</span>
+                      <span className="text-right">{plan.razorpay_name}</span>
+                    </div>
+                  )}
                   {plan.razorpay_period && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Period</span>
@@ -378,7 +397,7 @@ export function AdminPlansPage({ onNavigate }: { onNavigate: (page: string) => v
                 </div>
               )}
             </div>
-          ))}
+          )})}
           {plans.length === 0 && (
             <p className="col-span-full text-center text-muted-foreground py-8">No plans found</p>
           )}
