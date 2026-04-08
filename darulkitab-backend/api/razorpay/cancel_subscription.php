@@ -43,12 +43,13 @@ $response = razorpayRequest('POST', "subscriptions/$subscriptionId/cancel", [
     'cancel_at_cycle_end' => $cancelAtCycleEnd ? 1 : 0,
 ]);
 
-if (isset($response['error']) && $response['error'] === true) {
-    http_response_code(500);
+if (razorpayHasError($response)) {
+    $errorMessage = razorpayErrorMessage($response, 'Failed to cancel subscription');
+    http_response_code(($response['http_code'] ?? 0) >= 400 ? (int)$response['http_code'] : 500);
     exit(json_encode([
         "status" => "error",
-        "message" => "Failed to cancel subscription",
-        "details" => $response['error']['description'] ?? 'Unknown error',
+        "message" => $errorMessage,
+        "details" => $errorMessage,
     ]));
 }
 

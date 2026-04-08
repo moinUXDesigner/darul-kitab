@@ -74,12 +74,14 @@ $response = razorpayRequest('POST', 'subscriptions', [
     ],
 ]);
 
-if (isset($response['error']) && $response['error'] === true) {
-    http_response_code(500);
+if (razorpayHasError($response)) {
+    $errorMessage = razorpayErrorMessage($response, 'Failed to create subscription');
+    error_log("create_subscription Razorpay error: " . json_encode($response));
+    http_response_code(($response['http_code'] ?? 0) >= 400 ? (int)$response['http_code'] : 500);
     exit(json_encode([
         "status" => "error",
-        "message" => "Failed to create subscription",
-        "details" => $response['error']['description'] ?? ($response['message'] ?? 'Unknown error'),
+        "message" => $errorMessage,
+        "details" => $errorMessage,
     ]));
 }
 

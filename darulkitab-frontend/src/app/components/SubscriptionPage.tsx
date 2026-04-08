@@ -110,7 +110,10 @@ export function SubscriptionPage({ onNavigate }: { onNavigate: (page: string) =>
       });
       rzp.open();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to create subscription. Please try again.';
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.details ||
+        'Failed to create subscription. Please try again.';
       setError(msg);
     } finally {
       setLoading(false);

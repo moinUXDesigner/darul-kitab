@@ -28,11 +28,11 @@ if (empty($subscriptionId)) {
 // Fetch subscription from Razorpay
 $response = razorpayRequest('GET', "subscriptions/$subscriptionId");
 
-if (isset($response['error']) && $response['error'] === true) {
-    http_response_code(500);
+if (razorpayHasError($response)) {
+    http_response_code(($response['http_code'] ?? 0) >= 400 ? (int)$response['http_code'] : 500);
     exit(json_encode([
         "status" => "error",
-        "message" => "Could not verify subscription with Razorpay",
+        "message" => razorpayErrorMessage($response, 'Could not verify subscription with Razorpay'),
     ]));
 }
 

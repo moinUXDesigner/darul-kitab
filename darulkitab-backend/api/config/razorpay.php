@@ -17,9 +17,12 @@ define('RAZORPAY_WEBHOOK_SECRET', env('RAZORPAY_WEBHOOK_SECRET', ''));
 function razorpayRequest(string $method, string $endpoint, array $data = []): array {
     if (RAZORPAY_KEY_ID === '' || RAZORPAY_KEY_SECRET === '') {
         return [
-            'error' => true,
+            'error' => [
+                'description' => 'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in api/.env',
+            ],
             'message' => 'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in api/.env',
             'http_code' => 500,
+            'request_failed' => true,
         ];
     }
 
@@ -47,17 +50,63 @@ function razorpayRequest(string $method, string $endpoint, array $data = []): ar
     curl_close($ch);
     
     if ($error) {
-        return ['error' => true, 'message' => 'cURL error: ' . $error, 'http_code' => 0];
+        return [
+            'error' => [
+                'description' => 'cURL error: ' . $error,
+            ],
+            'message' => 'cURL error: ' . $error,
+            'http_code' => 0,
+            'request_failed' => true,
+        ];
     }
     
     $decoded = json_decode($response, true) ?? [];
     $decoded['http_code'] = $httpCode;
     
     if ($httpCode >= 400) {
-        $decoded['error'] = true;
+        $decoded['request_failed'] = true;
+
+        if (!isset($decoded['message']) || trim((string)$decoded['message']) === '') {
+            $decoded['message'] = razorpayErrorMessage($decoded, 'Razorpay request failed');
+        }
     }
     
     return $decoded;
+}
+
+function razorpayHasError(array $response): bool {
+    if (($response['request_failed'] ?? false) === true) {
+        return true;
+    }
+
+    if (!array_key_exists('error', $response)) {
+        return false;
+    }
+
+    return $response['error'] !== null && $response['error'] !== false;
+}
+
+function razorpayErrorMessage(array $response, string $default = 'Razorpay request failed'): string {
+    $error = $response['error'] ?? null;
+
+    if (is_array($error)) {
+        $description = trim((string)($error['description'] ?? ''));
+        if ($description !== '') {
+            return $description;
+        }
+
+        $reason = trim((string)($error['reason'] ?? ''));
+        if ($reason !== '') {
+            return $reason;
+        }
+    }
+
+    $message = trim((string)($response['message'] ?? ''));
+    if ($message !== '') {
+        return $message;
+    }
+
+    return $default;
 }
 
 /**

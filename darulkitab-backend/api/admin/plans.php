@@ -67,11 +67,11 @@ if ($method === 'POST') {
         ],
     ]);
 
-    if (isset($response['error']) && $response['error'] === true) {
+    if (razorpayHasError($response)) {
         http_response_code(400);
         exit(json_encode([
             "status" => "error",
-            "message" => $response['error']['description'] ?? $response['message'] ?? 'Failed to create Razorpay plan',
+            "message" => razorpayErrorMessage($response, 'Failed to create Razorpay plan'),
         ]));
     }
 

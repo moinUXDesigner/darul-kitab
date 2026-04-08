@@ -58,11 +58,11 @@ foreach ($plans as $plan) {
         ],
     ]);
 
-    if (isset($response['error']) && $response['error'] === true) {
+    if (razorpayHasError($response)) {
         $results[] = [
             'plan' => $plan['name'],
             'status' => 'failed',
-            'error' => $response['error']['description'] ?? $response['message'] ?? 'Unknown error',
+            'error' => razorpayErrorMessage($response, 'Unknown error'),
         ];
         continue;
     }

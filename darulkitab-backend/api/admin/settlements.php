@@ -18,11 +18,11 @@ $skip = max(0, ((int)($_GET['page'] ?? 1) - 1) * $count);
 // Fetch settlements from Razorpay
 $response = razorpayRequest('GET', "settlements?count=$count&skip=$skip");
 
-if (isset($response['error']) && $response['error'] === true) {
+if (razorpayHasError($response)) {
     http_response_code(400);
     exit(json_encode([
         "status" => "error",
-        "message" => $response['error']['description'] ?? $response['message'] ?? 'Failed to fetch settlements',
+        "message" => razorpayErrorMessage($response, 'Failed to fetch settlements'),
     ]));
 }
 
