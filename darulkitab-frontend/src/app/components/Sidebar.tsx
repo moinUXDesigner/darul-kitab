@@ -1,6 +1,10 @@
 import React from 'react';
 import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import Icon from '/public/icon.png';
+import QuranFahmi from '/public/quran-fahmi.svg';
+import Logo from '/public/logo.png';
+import Book from '/public/icons/book.svg';
 
 interface SidebarProps {
   activePage: string;
@@ -32,11 +36,20 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     <aside className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
+        
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+          {/* <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <span className="text-xl text-primary-foreground">د</span>
+          </div> */}
+
+          <div className="rounded-xl bg-primary flex items-center justify-center">
+            <img src={Logo} alt="Quran Fahmi Logo" className="w-30 h-30 object-cover " />        
           </div>
+          
+          
+          
           <div>
+
             <h2 className="text-lg">Quran Fahmi</h2>
             <p className="text-xs text-sidebar-foreground/60">Audio</p>
           </div>

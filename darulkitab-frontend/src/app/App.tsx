@@ -38,6 +38,9 @@ function AppContent() {
   });
   const [pageData, setPageData] = useState<any>(null);
 
+  console.log('Window Width:', window.innerWidth);
+  console.log("Window Height:", window.innerHeight);
+
   const handleNavigate = (page: string, data?: any) => {
     setCurrentPage(page);
     setPageData(data);

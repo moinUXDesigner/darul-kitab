@@ -46,7 +46,15 @@ try {
             s.arabic_name,
             COUNT(DISTINCT qa.id) as total_tracks,
             COUNT(DISTINCT CASE WHEN lp.completed = 1 THEN lp.audio_id END) as completed_tracks,
-            COUNT(DISTINCT CASE WHEN lp.completed = 0 AND lp.position_seconds > 0 THEN lp.audio_id END) as in_progress_tracks
+            COUNT(DISTINCT CASE WHEN lp.completed = 0 AND lp.position_seconds > 0 THEN lp.audio_id END) as in_progress_tracks,
+            COALESCE(SUM(COALESCE(qa.duration_seconds, lp.duration_seconds, 0)), 0) as total_duration_seconds,
+            COALESCE(SUM(
+                CASE
+                    WHEN lp.completed = 1 THEN COALESCE(qa.duration_seconds, lp.duration_seconds, 0)
+                    WHEN lp.position_seconds > 0 THEN LEAST(lp.position_seconds, COALESCE(qa.duration_seconds, lp.duration_seconds, lp.position_seconds, 0))
+                    ELSE 0
+                END
+            ), 0) as listened_seconds
         FROM quran_audio qa
         JOIN surahs s ON s.id = qa.surah_no
         LEFT JOIN listening_progress lp ON lp.audio_id = qa.id AND lp.user_id = ?
@@ -59,11 +67,18 @@ try {
 
     // Surahs fully completed
     $completedSurahs = 0;
-    foreach ($surahData as $s) {
+    foreach ($surahData as &$s) {
+        $totalDuration = (float)$s['total_duration_seconds'];
+        $listenedSeconds = (float)$s['listened_seconds'];
+        $s['progress_percent'] = $totalDuration > 0
+            ? round(min(100, ($listenedSeconds / $totalDuration) * 100))
+            : 0;
+
         if ((int)$s['total_tracks'] > 0 && (int)$s['completed_tracks'] === (int)$s['total_tracks']) {
             $completedSurahs++;
         }
     }
+    unset($s);
 
     // Favorites count
     $favCount = $db->prepare("SELECT COUNT(*) FROM user_favorites WHERE user_id = ?");
