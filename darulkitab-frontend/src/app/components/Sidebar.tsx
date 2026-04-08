@@ -1,10 +1,6 @@
 import React from 'react';
 import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import Icon from '/public/icon.png';
-import QuranFahmi from '/public/quran-fahmi.svg';
-import Logo from '/public/logo.png';
-import Book from '/public/icons/book.svg';
 
 interface SidebarProps {
   activePage: string;
@@ -13,6 +9,7 @@ interface SidebarProps {
 
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { isPremium, isAdmin } = useAuth();
+  const logoSrc = `${import.meta.env.BASE_URL}Logo.png`;
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -43,7 +40,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
           </div> */}
 
           <div className="rounded-xl bg-primary flex items-center justify-center">
-            <img src={Logo} alt="Quran Fahmi Logo" className="w-30 h-30 object-cover " />        
+            <img src={logoSrc} alt="Quran Fahmi Logo" className="w-30 h-30 object-cover " />
           </div>
           
           
