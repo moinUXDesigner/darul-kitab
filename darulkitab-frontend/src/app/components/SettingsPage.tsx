@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import api from '../api/axios';
-import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X } from 'lucide-react';
+import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X, ExternalLink, FileText, Mail } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { user, logout, isPremium, isAdmin } = useAuth();
@@ -15,6 +15,13 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackError, setFeedbackError] = useState('');
+  const legalLinks = [
+    { label: 'Terms & Conditions', href: '/terms-and-conditions.html', icon: FileText },
+    { label: 'Privacy Policy', href: '/privacy-policy.html', icon: Shield },
+    { label: 'Cancellation & Refund', href: '/cancellation-and-refund.html', icon: FileText },
+    { label: 'Shipping & Exchange', href: '/shipping-and-exchange.html', icon: FileText },
+    { label: 'Contact Us', href: '/contact-us.html', icon: Mail },
+  ];
 
   const handleSubmitFeedback = async () => {
     if (!feedbackText.trim()) return;
@@ -324,6 +331,25 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
             <HelpCircle className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">About Darul Kitab</span>
           </button>
+        </div>
+      </section>
+
+      <section className="mb-6">
+        <h3 className="text-lg mb-3">Legal</h3>
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          {legalLinks.map((item, index) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors ${index !== legalLinks.length - 1 ? 'border-b border-border' : ''}`}
+            >
+              <item.icon className="w-5 h-5 text-primary" />
+              <span className="flex-1 text-left">{item.label}</span>
+              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+            </a>
+          ))}
         </div>
       </section>
 
