@@ -1,19 +1,28 @@
 <?php
 /**
  * Razorpay Configuration
- * 
- * Test keys are used here. Replace with live keys for production.
- * TODO: Move to environment variables for production security.
  */
 
-define('RAZORPAY_KEY_ID', 'rzp_test_SYQzC3W5SUr80T');
-define('RAZORPAY_KEY_SECRET', 'DK1J5U95UdkiDPpNaMVM3uDR');
-define('RAZORPAY_WEBHOOK_SECRET', 'darulkitab_webhook_secret_2026'); // Set this in Razorpay Dashboard too
+require_once __DIR__ . '/env.php';
+
+loadEnvFile(dirname(__DIR__) . '/.env');
+
+define('RAZORPAY_KEY_ID', env('RAZORPAY_KEY_ID', ''));
+define('RAZORPAY_KEY_SECRET', env('RAZORPAY_KEY_SECRET', ''));
+define('RAZORPAY_WEBHOOK_SECRET', env('RAZORPAY_WEBHOOK_SECRET', ''));
 
 /**
  * Make a Razorpay API request
  */
 function razorpayRequest(string $method, string $endpoint, array $data = []): array {
+    if (RAZORPAY_KEY_ID === '' || RAZORPAY_KEY_SECRET === '') {
+        return [
+            'error' => true,
+            'message' => 'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in api/.env',
+            'http_code' => 500,
+        ];
+    }
+
     $url = 'https://api.razorpay.com/v1/' . ltrim($endpoint, '/');
     
     $ch = curl_init();
@@ -55,6 +64,10 @@ function razorpayRequest(string $method, string $endpoint, array $data = []): ar
  * Verify Razorpay webhook signature
  */
 function verifyWebhookSignature(string $payload, string $signature): bool {
+    if (RAZORPAY_WEBHOOK_SECRET === '') {
+        return false;
+    }
+
     $expected = hash_hmac('sha256', $payload, RAZORPAY_WEBHOOK_SECRET);
     return hash_equals($expected, $signature);
 }

@@ -25,6 +25,10 @@ Thumbs.db
 .env
 .env.*
 !.env.production
+!darulkitab-backend/api/.env.example
+
+# backend generated media
+darulkitab-backend/storage/quran-audio/
 
 # logs
 logs

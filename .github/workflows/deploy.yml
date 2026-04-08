@@ -30,6 +30,24 @@ jobs:
         working-directory: darulkitab-frontend
         run: npm run build
 
+      # 5. Create backend env file from GitHub Secrets
+      - name: Create backend .env
+        env:
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$RAZORPAY_KEY_ID" ] || [ -z "$RAZORPAY_KEY_SECRET" ] || [ -z "$RAZORPAY_WEBHOOK_SECRET" ]; then
+            echo "Missing one or more Razorpay GitHub Secrets."
+            exit 1
+          fi
+
+          cat > darulkitab-backend/api/.env <<EOF
+          RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
+          RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET
+          RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET
+          EOF
+
       # 5. Install lftp
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
