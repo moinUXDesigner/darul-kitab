@@ -1,29 +1,49 @@
 import React from 'react';
-import { Sun, Moon, Search } from 'lucide-react';
+import { Sun, Moon, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TopNavbarProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onNavigate: (page: string) => void;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
-export function TopNavbar({ theme, onToggleTheme, onNavigate }: TopNavbarProps) {
+export function TopNavbar({
+  theme,
+  onToggleTheme,
+  onNavigate,
+  isSidebarCollapsed,
+  onToggleSidebar,
+}: TopNavbarProps) {
   const { user } = useAuth();
   const initials = user?.user_name?.charAt(0).toUpperCase() || 'U';
 
   return (
     <header className="hidden md:flex items-center justify-between h-14 px-6 border-b border-border bg-card sticky top-0 z-20">
-      {/* Search (placeholder) */}
-      <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 w-72">
-        <Search className="w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search surahs, reciters..."
-          className="bg-transparent text-sm outline-none flex-1 placeholder:text-muted-foreground"
-          onFocus={() => onNavigate('search')}
-          readOnly
-        />
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+        </button>
+
+        {/* Search (placeholder) */}
+        <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 w-72 lg:w-80">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search surahs, reciters..."
+            className="bg-transparent text-sm outline-none flex-1 placeholder:text-muted-foreground"
+            onFocus={() => onNavigate('search')}
+            readOnly
+          />
+        </div>
       </div>
 
       {/* Right section */}

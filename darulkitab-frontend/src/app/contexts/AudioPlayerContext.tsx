@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import api from '../api/axios';
+import { useAuth } from './AuthContext';
 
 /* ================================
    TYPES
@@ -53,6 +54,11 @@ const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(und
 
 const SAVE_INTERVAL_MS = 15_000; // auto-save every 15 seconds
 
+function requiresPremiumAccess(ayah: AyahData | null | undefined): boolean {
+  if (!ayah) return false;
+  return ayah.isPremium === true || (typeof ayah.surahNumber === 'number' && ayah.surahNumber !== 1);
+}
+
 async function saveProgressToServer(audioId: string | number, position: number, dur: number) {
   try {
     await api.post('/user/save-progress.php', {
@@ -82,6 +88,7 @@ async function getProgressFromServer(audioId: string | number): Promise<number> 
 ================================ */
 
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
+  const { isPremium } = useAuth();
   const [currentAyah, setCurrentAyah] = useState<AyahData | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -161,23 +168,34 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   /* ---- Play single track ---- */
   const play = useCallback((ayah: AyahData) => {
     saveProgressNow(); // save current track progress before switching
-    setQueue([ayah]);
+    const normalizedAyah = {
+      ...ayah,
+      isPremium: requiresPremiumAccess(ayah),
+    };
+    const isLocked = normalizedAyah.isPremium && !isPremium;
+    setQueue([normalizedAyah]);
     setQueueIndex(0);
-    setCurrentAyah(ayah);
-    setIsPlaying(true);
+    setCurrentAyah(normalizedAyah);
+    setIsPlaying(!isLocked);
     setIsMinimized(false);
-  }, [saveProgressNow]);
+  }, [isPremium, saveProgressNow]);
 
   /* ---- Play a queue of tracks ---- */
   const playQueue = useCallback((ayahs: AyahData[], startIndex = 0) => {
     if (ayahs.length === 0) return;
     saveProgressNow();
-    setQueue(ayahs);
+    const normalizedQueue = ayahs.map((ayah) => ({
+      ...ayah,
+      isPremium: requiresPremiumAccess(ayah),
+    }));
+    const startingAyah = normalizedQueue[startIndex];
+    const isLocked = requiresPremiumAccess(startingAyah) && !isPremium;
+    setQueue(normalizedQueue);
     setQueueIndex(startIndex);
-    setCurrentAyah(ayahs[startIndex]);
-    setIsPlaying(true);
+    setCurrentAyah(startingAyah);
+    setIsPlaying(!isLocked);
     setIsMinimized(false);
-  }, [saveProgressNow]);
+  }, [isPremium, saveProgressNow]);
 
   const pause = useCallback(() => {
     setIsPlaying(false);
@@ -185,11 +203,15 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, [saveProgressNow]);
 
   const togglePlayPause = useCallback(() => {
+    if (requiresPremiumAccess(currentAyahRef.current) && !isPremium) {
+      setIsPlaying(false);
+      return;
+    }
     setIsPlaying(prev => {
       if (prev) saveProgressNow(); // save when pausing
       return !prev;
     });
-  }, [saveProgressNow]);
+  }, [isPremium, saveProgressNow]);
 
   const setSpeed = useCallback((speed: number) => {
     setPlaybackSpeed(speed);
@@ -207,15 +229,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setQueueIndex(prev => {
       const next = prev + 1;
       if (next < queue.length) {
-        setCurrentAyah(queue[next]);
-        setIsPlaying(true);
+        const nextAyah = queue[next];
+        setCurrentAyah(nextAyah);
+        setIsPlaying(!(requiresPremiumAccess(nextAyah) && !isPremium));
         return next;
       }
       // End of queue
       setIsPlaying(false);
       return prev;
     });
-  }, [queue, saveProgressNow]);
+  }, [isPremium, queue, saveProgressNow]);
 
   const skipPrevious = useCallback(() => {
     const audio = audioRef.current;
@@ -229,8 +252,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setQueueIndex(prev => {
       const prevIdx = prev - 1;
       if (prevIdx >= 0) {
-        setCurrentAyah(queue[prevIdx]);
-        setIsPlaying(true);
+        const previousAyah = queue[prevIdx];
+        setCurrentAyah(previousAyah);
+        setIsPlaying(!(requiresPremiumAccess(previousAyah) && !isPremium));
         return prevIdx;
       }
       // At start – restart current track
@@ -240,7 +264,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }
       return prev;
     });
-  }, [queue, saveProgressNow]);
+  }, [isPremium, queue, saveProgressNow]);
 
   const minimize = useCallback(() => setIsMinimized(true), []);
   const maximize = useCallback(() => setIsMinimized(false), []);
@@ -293,8 +317,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setQueueIndex(prev => {
         const next = prev + 1;
         if (next < queue.length) {
-          setCurrentAyah(queue[next]);
-          setIsPlaying(true);
+          const nextAyah = queue[next];
+          setCurrentAyah(nextAyah);
+          setIsPlaying(!(requiresPremiumAccess(nextAyah) && !isPremium));
           return next;
         }
         setIsPlaying(false);
@@ -351,7 +376,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('playing', onPlaying);
     };
-  }, [queue]);
+  }, [isPremium, queue]);
 
   /* ---- Load new track + resume position ---- */
   useEffect(() => {

@@ -1,14 +1,15 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activePage: string;
   onNavigate: (page: string) => void;
+  isCollapsed: boolean;
 }
 
-export function Sidebar({ activePage, onNavigate }: SidebarProps) {
-  const { isPremium, isAdmin } = useAuth();
+export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
+  const { isPremium, isAdmin, logout } = useAuth();
   const logoSrc = `${import.meta.env.BASE_URL}Logo.png`;
 
   const navItems = [
@@ -30,34 +31,42 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
+    <aside
+      className={`hidden md:flex flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 transition-[width] duration-300 ease-out ${
+        isCollapsed ? 'w-[92px]' : 'w-64'
+      }`}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
-        
-        <div className="flex items-center gap-3">
+      <div className={`border-b border-sidebar-border ${isCollapsed ? 'px-3 py-4' : 'p-6'}`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           {/* <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <span className="text-xl text-primary-foreground">د</span>
           </div> */}
 
           <div className="rounded-xl bg-primary flex items-center justify-center">
-            <img src={logoSrc} alt="Quran Fahmi Logo" className="w-30 h-30 object-cover " />
+            <img
+              src={logoSrc}
+              alt="Quran Fahmi Logo"
+              className={`${isCollapsed ? 'w-14 h-14' : 'w-30 h-30'} object-cover`}
+            />
           </div>
-          
-          
-          
-          <div>
 
-            <h2 className="text-lg">Quran Fahmi</h2>
-            <p className="text-xs text-sidebar-foreground/60">Audio</p>
-          </div>
+          {!isCollapsed && (
+            <div>
+              <h2 className="text-lg">Quran Fahmi</h2>
+              <p className="text-xs text-sidebar-foreground/60">Audio</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-y-auto">
-        <div className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          Explore
-        </div>
+        {!isCollapsed && (
+          <div className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
+            Explore
+          </div>
+        )}
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const isActive = activePage === item.id;
@@ -65,7 +74,10 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
               <li key={item.id}>
                 <button
                   onClick={() => onNavigate(item.id)}
-                    className={`group w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`group w-full flex items-center rounded-xl transition-all ${
+                    isCollapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-1.5'
+                  } ${
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -80,8 +92,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                   >
                     <item.icon className="w-[18px] h-[18px]" />
                   </span>
-                  <span className="text-[15px] font-medium tracking-tight">{item.label}</span>
-                  {item.id === 'subscription' && isPremium && (
+                  {!isCollapsed && <span className="text-[15px] font-medium tracking-tight">{item.label}</span>}
+                  {!isCollapsed && item.id === 'subscription' && isPremium && (
                     <span className="ml-auto text-[11px] px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold">
                       Pro
                     </span>
@@ -96,10 +108,16 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="my-5 border-t border-sidebar-border" />
-            <div className="flex items-center gap-2 px-3 mb-3">
-              <Shield className="w-4 h-4 text-violet-500" />
-              <span className="text-[11px] font-semibold text-sidebar-foreground/45 uppercase tracking-[0.18em]">Admin</span>
-            </div>
+            {isCollapsed ? (
+              <div className="flex justify-center mb-3">
+                <Shield className="w-4 h-4 text-violet-500" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 mb-3">
+                <Shield className="w-4 h-4 text-violet-500" />
+                <span className="text-[11px] font-semibold text-sidebar-foreground/45 uppercase tracking-[0.18em]">Admin</span>
+              </div>
+            )}
             <ul className="space-y-0.5">
               {adminItems.map((item) => {
                 const isActive = activePage === item.id;
@@ -107,7 +125,10 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                   <li key={item.id}>
                     <button
                       onClick={() => onNavigate(item.id)}
-                      className={`group w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all text-sm ${
+                      title={isCollapsed ? item.label : undefined}
+                      className={`group w-full flex items-center rounded-xl transition-all text-sm ${
+                        isCollapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-1.5'
+                      } ${
                         isActive
                           ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -122,7 +143,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                       >
                         <item.icon className="w-4 h-4" />
                       </span>
-                      <span className="font-medium tracking-tight">{item.label}</span>
+                      {!isCollapsed && <span className="font-medium tracking-tight">{item.label}</span>}
                     </button>
                   </li>
                 );
@@ -133,7 +154,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Premium Banner */}
-      {!isPremium && (
+      {!isPremium && !isCollapsed && (
         <div className="p-4 m-4 rounded-3xl bg-gradient-to-br from-accent/20 via-accent/10 to-transparent border border-accent/25 shadow-sm">
           <div className="w-10 h-10 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-3">
             <Crown className="w-5 h-5" />
@@ -152,8 +173,24 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       )}
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border text-xs text-sidebar-foreground/60 text-center">
-        <p>© {new Date().getFullYear()} Quran Fahmi Audio</p>
+      <div className="p-4 border-t border-sidebar-border">
+        <button
+          type="button"
+          onClick={logout}
+          title={isCollapsed ? 'Logout' : undefined}
+          className={`group w-full flex items-center rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 text-sidebar-foreground transition-all hover:bg-sidebar-accent ${
+            isCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
+          }`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-sidebar-border/60 bg-background/80 text-sidebar-foreground/80 transition-all group-hover:border-transparent group-hover:bg-sidebar-accent">
+            <LogOut className="w-4 h-4" />
+          </span>
+          {!isCollapsed && <span className="font-medium tracking-tight">Logout</span>}
+        </button>
+
+        <p className="mt-3 text-center text-xs text-sidebar-foreground/60">
+          {isCollapsed ? `© ${new Date().getFullYear()}` : `© ${new Date().getFullYear()} Quran Fahmi Audio`}
+        </p>
       </div>
     </aside>
   );

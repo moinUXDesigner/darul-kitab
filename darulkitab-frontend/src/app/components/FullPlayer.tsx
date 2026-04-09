@@ -50,7 +50,10 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
 
   if (!currentAyah || isMinimized) return null;
 
-  const isLocked = currentAyah.isPremium && !isPremium;
+  const isLocked = !isPremium && (
+    currentAyah.isPremium === true ||
+    (typeof currentAyah.surahNumber === 'number' && currentAyah.surahNumber !== 1)
+  );
   const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
@@ -129,153 +132,181 @@ export function FullPlayer({ onNavigate }: { onNavigate: (page: string) => void 
             {/* Player details + controls */}
             <div className="w-full lg:w-2/3">
               {/* Ayah Text */}
-          <div className="mb-6">
-            <div className="text-center mb-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm mb-6">
-                <span>Ayah {currentAyah.ayahNumber}{currentAyah.ayahEnd ? `–${currentAyah.ayahEnd}` : ''}</span>
-              </div>
-            </div>
-
-            <div 
-              className="text-center mb-6 px-4" 
-              style={{ fontFamily: 'var(--font-family-arabic)', lineHeight: 2 }}
-            >
-              <p className="text-2xl md:text-3xl">{currentAyah.arabicText}</p>
-            </div>
-
-            <button
-              onClick={() => setShowTranslation(!showTranslation)}
-              className="flex items-center gap-2 mx-auto px-4 py-2 rounded-full hover:bg-muted transition-colors text-sm mb-4"
-            >
-              <Languages className="w-4 h-4" />
-              {showTranslation ? 'Hide' : 'Show'} Translation
-            </button>
-
-            {showTranslation && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="text-center px-4"
-              >
-                <p className="text-muted-foreground italic">"{currentAyah.translation}"</p>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Progress Bar — interactive */}
-          <div className="mb-6">
-            <div
-              ref={progressBarRef}
-              className="relative h-2 bg-muted rounded-full mb-2 cursor-pointer group"
-              onClick={handleSeek}
-            >
-              <div
-                className="absolute inset-y-0 left-0 bg-primary rounded-full"
-                style={{ width: `${progressPercent}%` }}
-              />
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${progressPercent}% - 8px)` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <button className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
-              <Shuffle className="w-5 h-5" />
-            </button>
-
-            <button 
-              onClick={skipPrevious}
-              disabled={isLocked}
-              className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50"
-            >
-              <SkipBack className="w-6 h-6" />
-            </button>
-
-            <button
-              onClick={togglePlayPause}
-              disabled={isLocked}
-              className="w-16 h-16 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center shadow-lg disabled:opacity-50"
-            >
-              {isBuffering ? (
-                <Loader2 className="w-8 h-8 animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="w-8 h-8" />
-              ) : (
-                <Play className="w-8 h-8 ml-1" />
-              )}
-            </button>
-
-            <button 
-              onClick={skipNext}
-              disabled={isLocked || queueIndex >= queue.length - 1}
-              className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50"
-            >
-              <SkipForward className="w-6 h-6" />
-            </button>
-
-            <button className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
-              <Repeat className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Additional Controls */}
-          <div className="flex items-center justify-center gap-6 text-muted-foreground">
-            <button 
-              className="relative"
-              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-            >
-              <div className="text-sm hover:text-foreground transition-colors">
-                {playbackSpeed}x
-              </div>
-              {showSpeedMenu && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border rounded-xl shadow-lg p-2 min-w-[80px]">
-                  {speeds.map(speed => (
-                    <button
-                      key={speed}
-                      onClick={() => {
-                        setSpeed(speed);
-                        setShowSpeedMenu(false);
-                      }}
-                      className={`w-full px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${
-                        playbackSpeed === speed ? 'text-primary' : ''
-                      }`}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
+              <div className="mb-6">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm mb-6">
+                    <span>Ayah {currentAyah.ayahNumber}{currentAyah.ayahEnd ? `–${currentAyah.ayahEnd}` : ''}</span>
+                  </div>
                 </div>
+
+                <div 
+                  className="text-center mb-6 px-4" 
+                  style={{ fontFamily: 'var(--font-family-arabic)', lineHeight: 2 }}
+                >
+                  <p className="text-2xl md:text-3xl">{currentAyah.arabicText}</p>
+                </div>
+
+                <button
+                  onClick={() => setShowTranslation(!showTranslation)}
+                  className="flex items-center gap-2 mx-auto px-4 py-2 rounded-full hover:bg-muted transition-colors text-sm mb-4"
+                >
+                  <Languages className="w-4 h-4" />
+                  {showTranslation ? 'Hide' : 'Show'} Translation
+                </button>
+
+                {showTranslation && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-center px-4"
+                  >
+                    <p className="text-muted-foreground italic">"{currentAyah.translation}"</p>
+                  </motion.div>
+                )}
+              </div>
+              {isLocked ? (
+                <div className="rounded-3xl border border-accent/30 bg-accent/5 p-6 md:p-8 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 text-accent">
+                    <Crown className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl mb-2">Premium recitation</h3>
+                  <p className="text-muted-foreground max-w-xl mx-auto">
+                    This ayah is part of the premium library. Subscribe to unlock playback, all reciters, and secure Razorpay checkout.
+                  </p>
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                      onClick={() => onNavigate('subscription')}
+                      className="px-6 py-3 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 transition-colors font-medium"
+                    >
+                      Subscribe and Pay
+                    </button>
+                    <button
+                      onClick={close}
+                      className="px-6 py-3 rounded-full border border-border hover:bg-muted transition-colors"
+                    >
+                      Close Player
+                    </button>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Secure payment powered by Razorpay
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Progress Bar — interactive */}
+                  <div className="mb-6">
+                    <div
+                      ref={progressBarRef}
+                      className="relative h-2 bg-muted rounded-full mb-2 cursor-pointer group"
+                      onClick={handleSeek}
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 bg-primary rounded-full"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ left: `calc(${progressPercent}% - 8px)` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
+                    </div>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex items-center justify-center gap-4 mb-6">
+                    <button className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
+                      <Shuffle className="w-5 h-5" />
+                    </button>
+
+                    <button 
+                      onClick={skipPrevious}
+                      className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
+                    >
+                      <SkipBack className="w-6 h-6" />
+                    </button>
+
+                    <button
+                      onClick={togglePlayPause}
+                      className="w-16 h-16 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center shadow-lg"
+                    >
+                      {isBuffering ? (
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                      ) : isPlaying ? (
+                        <Pause className="w-8 h-8" />
+                      ) : (
+                        <Play className="w-8 h-8 ml-1" />
+                      )}
+                    </button>
+
+                    <button 
+                      onClick={skipNext}
+                      disabled={queueIndex >= queue.length - 1}
+                      className="w-12 h-12 rounded-full hover:bg-muted transition-colors flex items-center justify-center disabled:opacity-50"
+                    >
+                      <SkipForward className="w-6 h-6" />
+                    </button>
+
+                    <button className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
+                      <Repeat className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Additional Controls */}
+                  <div className="flex items-center justify-center gap-6 text-muted-foreground">
+                    <button 
+                      className="relative"
+                      onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                    >
+                      <div className="text-sm hover:text-foreground transition-colors">
+                        {playbackSpeed}x
+                      </div>
+                      {showSpeedMenu && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border rounded-xl shadow-lg p-2 min-w-[80px]">
+                          {speeds.map(speed => (
+                            <button
+                              key={speed}
+                              onClick={() => {
+                                setSpeed(speed);
+                                setShowSpeedMenu(false);
+                              }}
+                              className={`w-full px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${
+                                playbackSpeed === speed ? 'text-primary' : ''
+                              }`}
+                            >
+                              {speed}x
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+
+                    <button 
+                      onClick={toggleFavorite}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                    </button>
+
+                    <button 
+                      className="hover:text-foreground transition-colors disabled:opacity-50"
+                      disabled={!isPremium}
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+
+                    <button className="hover:text-foreground transition-colors">
+                      <Clock className="w-5 h-5" />
+                    </button>
+                  </div>
+                </>
               )}
-            </button>
-
-            <button 
-              onClick={toggleFavorite}
-              className="hover:text-foreground transition-colors"
-            >
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-            </button>
-
-            <button 
-              className="hover:text-foreground transition-colors disabled:opacity-50"
-              disabled={!isPremium}
-            >
-              <Download className="w-5 h-5" />
-            </button>
-
-            <button className="hover:text-foreground transition-colors">
-              <Clock className="w-5 h-5" />
-            </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 </motion.div>
   );
 }

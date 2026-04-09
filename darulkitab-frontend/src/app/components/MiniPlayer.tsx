@@ -10,7 +10,10 @@ export function MiniPlayer({ onNavigate }: { onNavigate: (page: string) => void 
 
   if (!currentAyah) return null;
 
-  const isLocked = currentAyah.isPremium && !isPremium;
+  const isLocked = !isPremium && (
+    currentAyah.isPremium === true ||
+    (typeof currentAyah.surahNumber === 'number' && currentAyah.surahNumber !== 1)
+  );
 
   return (
     <motion.div
@@ -42,19 +45,27 @@ export function MiniPlayer({ onNavigate }: { onNavigate: (page: string) => void 
 
           {/* Controls */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={togglePlayPause}
-              disabled={isLocked}
-              className="w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center disabled:opacity-50"
-            >
-              {isBuffering ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5 ml-0.5" />
-              )}
-            </button>
+            {isLocked ? (
+              <button
+                onClick={() => onNavigate('subscription')}
+                className="px-3 h-10 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 transition-colors flex items-center justify-center text-xs font-medium"
+              >
+                Pay for Premium
+              </button>
+            ) : (
+              <button
+                onClick={togglePlayPause}
+                className="w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center"
+              >
+                {isBuffering ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isPlaying ? (
+                  <Pause className="w-5 h-5" />
+                ) : (
+                  <Play className="w-5 h-5 ml-0.5" />
+                )}
+              </button>
+            )}
 
             <button
               onClick={maximize}
@@ -83,13 +94,10 @@ export function MiniPlayer({ onNavigate }: { onNavigate: (page: string) => void 
         </div>
 
         {isLocked && (
-          <div className="mt-2">
-            <button
-              onClick={() => onNavigate('subscription')}
-              className="w-full py-2 bg-accent/10 text-accent rounded-lg text-xs hover:bg-accent/20 transition-colors"
-            >
-              Unlock with Premium
-            </button>
+          <div className="mt-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2">
+            <p className="text-[11px] text-muted-foreground text-center">
+              Premium content. Subscribe to unlock playback with secure Razorpay payment.
+            </p>
           </div>
         )}
       </div>

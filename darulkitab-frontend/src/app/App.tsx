@@ -37,6 +37,9 @@ function AppContent() {
     return (storedUser && storedToken) ? 'home' : 'login';
   });
   const [pageData, setPageData] = useState<any>(null);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('desktop_sidebar_collapsed') === 'true';
+  });
 
   console.log('Window Width:', window.innerWidth);
   console.log("Window Height:", window.innerHeight);
@@ -45,6 +48,10 @@ function AppContent() {
     setCurrentPage(page);
     setPageData(data);
     window.scrollTo(0, 0);
+  };
+
+  const handleToggleDesktopSidebar = () => {
+    setIsDesktopSidebarCollapsed((previousState) => !previousState);
   };
 
   // Redirect to login if not authenticated, or to home if authenticated on auth pages
@@ -56,6 +63,10 @@ function AppContent() {
       setCurrentPage('home');
     }
   }, [isAuthenticated, currentPage]);
+
+  React.useEffect(() => {
+    localStorage.setItem('desktop_sidebar_collapsed', String(isDesktopSidebarCollapsed));
+  }, [isDesktopSidebarCollapsed]);
 
   // Auth Pages
   if (!isAuthenticated) {
@@ -72,12 +83,22 @@ function AppContent() {
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
-      <Sidebar activePage={currentPage} onNavigate={handleNavigate} />
+      <Sidebar
+        activePage={currentPage}
+        onNavigate={handleNavigate}
+        isCollapsed={isDesktopSidebarCollapsed}
+      />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
         {/* Desktop Top Navbar */}
-        <TopNavbar theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} />
+        <TopNavbar
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onNavigate={handleNavigate}
+          isSidebarCollapsed={isDesktopSidebarCollapsed}
+          onToggleSidebar={handleToggleDesktopSidebar}
+        />
 
         {/* Mobile Appbar */}
         <MobileAppbar theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} />
