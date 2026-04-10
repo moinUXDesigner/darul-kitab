@@ -105,6 +105,7 @@ jobs:
       # 6. Deploy via FTP (Hostinger FIXED)
       - name: Deploy via lftp
         env:
+          FTP_PORT: ${{ secrets.FTP_PORT }}
           FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -128,9 +129,10 @@ jobs:
             exit 1
           fi
 
-          REMOTE_DIR="${FTP_REMOTE_DIR:-public_html}"
+          FTP_PORT="${FTP_PORT:-21}"
+          REMOTE_DIR="${FTP_REMOTE_DIR:-.}"
 
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p "$FTP_PORT" "$FTP_SERVER" -e "
             set ftp:passive-mode yes;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -140,7 +142,6 @@ jobs:
             set net:reconnect-interval-multiplier 1.5;
             set ssl:verify-certificate yes;
 
-            mkdir -p $REMOTE_DIR;
             cd $REMOTE_DIR;
 
             # Upload frontend (to public_html root, preserve api/ and storage/)
