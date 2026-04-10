@@ -33,16 +33,65 @@ jobs:
       # 5. Create backend env file from GitHub Secrets
       - name: Create backend .env
         env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          APP_NAME: ${{ secrets.APP_NAME }}
+          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME: ${{ secrets.MAIL_FROM_NAME }}
+          MAIL_REPLY_TO: ${{ secrets.MAIL_REPLY_TO }}
+          PASSWORD_RESET_TTL_MINUTES: ${{ secrets.PASSWORD_RESET_TTL_MINUTES }}
           RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
           RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
           RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+          SMTP_ENCRYPTION: ${{ secrets.SMTP_ENCRYPTION }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_TIMEOUT: ${{ secrets.SMTP_TIMEOUT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
         run: |
-          if [ -z "$RAZORPAY_KEY_ID" ] || [ -z "$RAZORPAY_KEY_SECRET" ] || [ -z "$RAZORPAY_WEBHOOK_SECRET" ]; then
-            echo "Missing one or more Razorpay GitHub Secrets."
+          required_vars=(
+            APP_BASE_URL
+            APP_NAME
+            MAIL_FROM_ADDRESS
+            MAIL_FROM_NAME
+            MAIL_REPLY_TO
+            PASSWORD_RESET_TTL_MINUTES
+            RAZORPAY_KEY_ID
+            RAZORPAY_KEY_SECRET
+            RAZORPAY_WEBHOOK_SECRET
+            SMTP_ENCRYPTION
+            SMTP_HOST
+            SMTP_PASSWORD
+            SMTP_PORT
+            SMTP_TIMEOUT
+            SMTP_USERNAME
+          )
+
+          missing_vars=()
+          for var_name in "${required_vars[@]}"; do
+            if [ -z "${!var_name}" ]; then
+              missing_vars+=("$var_name")
+            fi
+          done
+
+          if [ "${#missing_vars[@]}" -gt 0 ]; then
+            echo "Missing required GitHub Secrets: ${missing_vars[*]}"
             exit 1
           fi
 
           cat > darulkitab-backend/api/.env <<EOF
+          APP_NAME=$APP_NAME
+          APP_BASE_URL=$APP_BASE_URL
+          MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
+          MAIL_FROM_NAME=$MAIL_FROM_NAME
+          MAIL_REPLY_TO=$MAIL_REPLY_TO
+          SMTP_HOST=$SMTP_HOST
+          SMTP_PORT=$SMTP_PORT
+          SMTP_ENCRYPTION=$SMTP_ENCRYPTION
+          SMTP_USERNAME=$SMTP_USERNAME
+          SMTP_PASSWORD=$SMTP_PASSWORD
+          SMTP_TIMEOUT=$SMTP_TIMEOUT
+          PASSWORD_RESET_TTL_MINUTES=$PASSWORD_RESET_TTL_MINUTES
           RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
           RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET
           RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET
@@ -55,17 +104,43 @@ jobs:
       # 6. Deploy via FTP (Hostinger FIXED)
       - name: Deploy via lftp
         env:
+          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
+          required_ftp_vars=(
+            FTP_SERVER
+            FTP_USERNAME
+            FTP_PASSWORD
+          )
+
+          missing_ftp_vars=()
+          for var_name in "${required_ftp_vars[@]}"; do
+            if [ -z "${!var_name}" ]; then
+              missing_ftp_vars+=("$var_name")
+            fi
+          done
+
+          if [ "${#missing_ftp_vars[@]}" -gt 0 ]; then
+            echo "Missing required FTP GitHub Secrets: ${missing_ftp_vars[*]}"
+            exit 1
+          fi
+
+          REMOTE_DIR="${FTP_REMOTE_DIR:-public_html}"
+
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "
             set ftp:passive-mode yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
             set net:timeout 60;
             set net:max-retries 5;
             set net:reconnect-interval-base 5;
             set net:reconnect-interval-multiplier 1.5;
-            set ssl:verify-certificate no;
+            set ssl:verify-certificate yes;
+
+            mkdir -p $REMOTE_DIR;
+            cd $REMOTE_DIR;
 
             # Upload frontend (to public_html root, preserve api/ and storage/)
             mirror -R --delete --verbose --no-perms \
