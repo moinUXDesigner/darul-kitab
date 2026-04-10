@@ -49,21 +49,22 @@ jobs:
           SMTP_TIMEOUT: ${{ secrets.SMTP_TIMEOUT }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
         run: |
+          APP_NAME="${APP_NAME:-Quran Fahmi}"
+          APP_BASE_URL="${APP_BASE_URL:-https://quranfahmi.in}"
+          SMTP_HOST="${SMTP_HOST:-smtp.hostinger.com}"
+          SMTP_PORT="${SMTP_PORT:-465}"
+          SMTP_ENCRYPTION="${SMTP_ENCRYPTION:-ssl}"
+          SMTP_TIMEOUT="${SMTP_TIMEOUT:-15}"
+          PASSWORD_RESET_TTL_MINUTES="${PASSWORD_RESET_TTL_MINUTES:-60}"
+          MAIL_FROM_ADDRESS="${MAIL_FROM_ADDRESS:-$SMTP_USERNAME}"
+          MAIL_FROM_NAME="${MAIL_FROM_NAME:-$APP_NAME}"
+          MAIL_REPLY_TO="${MAIL_REPLY_TO:-$MAIL_FROM_ADDRESS}"
+
           required_vars=(
-            APP_BASE_URL
-            APP_NAME
-            MAIL_FROM_ADDRESS
-            MAIL_FROM_NAME
-            MAIL_REPLY_TO
-            PASSWORD_RESET_TTL_MINUTES
             RAZORPAY_KEY_ID
             RAZORPAY_KEY_SECRET
             RAZORPAY_WEBHOOK_SECRET
-            SMTP_ENCRYPTION
-            SMTP_HOST
             SMTP_PASSWORD
-            SMTP_PORT
-            SMTP_TIMEOUT
             SMTP_USERNAME
           )
 
