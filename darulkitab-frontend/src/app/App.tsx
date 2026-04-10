@@ -4,6 +4,7 @@ import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import { LoginPage } from './components/LoginPage';
 import { SignupPage } from './components/SignupPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { HomePage } from './components/HomePage';
 import { SearchPage } from './components/SearchPage';
 import { SurahListPage } from './components/SurahListPage';
@@ -27,15 +28,56 @@ import { AdminSettlementsPage } from './components/AdminSettlementsPage';
 import { AdminNotificationsPage } from './components/AdminNotificationsPage';
 import { useTheme } from './hooks/useTheme';
 
+function clearAuthQueryParams() {
+  const url = new URL(window.location.href);
+  let changed = false;
+
+  ['page', 'token'].forEach((key) => {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    const search = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${search ? `?${search}` : ''}${url.hash}`;
+    window.history.replaceState({}, '', nextUrl);
+  }
+}
+
+function getInitialPage() {
+  const storedUser = localStorage.getItem('user');
+  const storedToken = localStorage.getItem('jwt_token');
+
+  if (storedUser && storedToken) {
+    clearAuthQueryParams();
+    return 'home';
+  }
+
+  const query = new URLSearchParams(window.location.search);
+  const requestedPage = query.get('page');
+  const token = query.get('token');
+
+  if (requestedPage === 'reset-password' && token) {
+    return 'reset-password';
+  }
+
+  if (requestedPage === 'signup') {
+    return 'signup';
+  }
+
+  if (requestedPage === 'forgot-password') {
+    return 'forgot-password';
+  }
+
+  return 'login';
+}
+
 function AppContent() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  // Read localStorage directly to avoid any timing issues with context
-  const [currentPage, setCurrentPage] = useState<string>(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('jwt_token');
-    return (storedUser && storedToken) ? 'home' : 'login';
-  });
+  const [currentPage, setCurrentPage] = useState<string>(getInitialPage);
   const [pageData, setPageData] = useState<any>(null);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('desktop_sidebar_collapsed') === 'true';
@@ -45,6 +87,9 @@ function AppContent() {
   console.log("Window Height:", window.innerHeight);
 
   const handleNavigate = (page: string, data?: any) => {
+    if (page !== 'reset-password') {
+      clearAuthQueryParams();
+    }
     setCurrentPage(page);
     setPageData(data);
     window.scrollTo(0, 0);
@@ -56,10 +101,11 @@ function AppContent() {
 
   // Redirect to login if not authenticated, or to home if authenticated on auth pages
   React.useEffect(() => {
-    if (!isAuthenticated && currentPage !== 'login' && currentPage !== 'signup' && currentPage !== 'forgot-password') {
+    if (!isAuthenticated && currentPage !== 'login' && currentPage !== 'signup' && currentPage !== 'forgot-password' && currentPage !== 'reset-password') {
       setCurrentPage('login');
     }
-    if (isAuthenticated && (currentPage === 'login' || currentPage === 'signup' || currentPage === 'forgot-password')) {
+    if (isAuthenticated && (currentPage === 'login' || currentPage === 'signup' || currentPage === 'forgot-password' || currentPage === 'reset-password')) {
+      clearAuthQueryParams();
       setCurrentPage('home');
     }
   }, [isAuthenticated, currentPage]);
@@ -75,6 +121,9 @@ function AppContent() {
     }
     if (currentPage === 'forgot-password') {
       return <ForgotPasswordPage onNavigate={handleNavigate} />;
+    }
+    if (currentPage === 'reset-password') {
+      return <ResetPasswordPage onNavigate={handleNavigate} />;
     }
     return <LoginPage onNavigate={handleNavigate} />;
   }

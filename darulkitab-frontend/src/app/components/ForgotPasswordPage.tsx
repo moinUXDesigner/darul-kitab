@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
 import { Mail, ArrowLeft } from 'lucide-react';
+import api from '../api/axios';
 
 export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.post('/auth/request-password-reset.php', { email });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Unable to send reset link. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,8 +41,8 @@ export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) 
           <h1 className="text-3xl mb-2">Forgot Password?</h1>
           <p className="text-muted-foreground">
             {submitted
-              ? 'Check your email for reset instructions'
-              : 'Enter your email to receive password reset instructions'}
+              ? 'If your email is registered, a reset link is on the way'
+              : 'Enter your email to receive a password reset link'}
           </p>
         </div>
 
@@ -51,16 +64,23 @@ export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) 
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 rounded-2xl bg-destructive/10 text-destructive text-sm">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
+              disabled={loading}
               className="w-full py-3 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Send Reset Link
+              {loading ? 'Sending Reset Link...' : 'Send Reset Link'}
             </button>
           </form>
         ) : (
           <div className="bg-primary/10 border border-primary/20 p-6 rounded-2xl text-center">
-            <p className="mb-4">We've sent a password reset link to:</p>
+            <p className="mb-4">If an account exists for this email, we have sent a reset link:</p>
             <p className="text-primary mb-6">{email}</p>
             <button
               onClick={() => onNavigate('login')}
