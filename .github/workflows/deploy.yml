@@ -98,60 +98,84 @@ jobs:
           RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET
           EOF
 
-      # 5. Install lftp
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Install rsync and OpenSSH client
+        run: sudo apt-get update && sudo apt-get install -y rsync openssh-client
 
-      # 6. Deploy via FTP (Hostinger FIXED)
-      - name: Deploy via lftp
+      - name: Prepare SSH authentication
         env:
-          FTP_PORT: ${{ secrets.FTP_PORT }}
-          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          required_ftp_vars=(
-            FTP_SERVER
-            FTP_USERNAME
-            FTP_PASSWORD
+          required_ssh_vars=(
+            SSH_HOST
+            SSH_USERNAME
+            SSH_PRIVATE_KEY
+            SSH_PASSPHRASE
+            SSH_KNOWN_HOSTS
           )
 
-          missing_ftp_vars=()
-          for var_name in "${required_ftp_vars[@]}"; do
+          missing_ssh_vars=()
+          for var_name in "${required_ssh_vars[@]}"; do
             if [ -z "${!var_name}" ]; then
-              missing_ftp_vars+=("$var_name")
+              missing_ssh_vars+=("$var_name")
             fi
           done
 
-          if [ "${#missing_ftp_vars[@]}" -gt 0 ]; then
-            echo "Missing required FTP GitHub Secrets: ${missing_ftp_vars[*]}"
+          if [ "${#missing_ssh_vars[@]}" -gt 0 ]; then
+            echo "Missing required SSH GitHub Secrets: ${missing_ssh_vars[*]}"
             exit 1
           fi
 
-          FTP_PORT="${FTP_PORT:-21}"
-          REMOTE_DIR="${FTP_REMOTE_DIR:-.}"
+          SSH_PORT="${SSH_PORT:-65002}"
 
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p "$FTP_PORT" "$FTP_SERVER" -e "
-            set ftp:passive-mode yes;
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            set net:timeout 60;
-            set net:max-retries 5;
-            set net:reconnect-interval-base 5;
-            set net:reconnect-interval-multiplier 1.5;
-            set ssl:verify-certificate yes;
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
 
-            cd $REMOTE_DIR;
+          cat > ~/.ssh/ssh_askpass.sh <<'EOF'
+          #!/bin/sh
+          printf '%s\n' "$SSH_PASSPHRASE"
+          EOF
+          chmod 700 ~/.ssh/ssh_askpass.sh
 
-            # Upload frontend (to public_html root, preserve api/ and storage/)
-            mirror -R --delete --verbose --no-perms \
-            --exclude api/ \
-            --exclude storage/ \
-            darulkitab-frontend/dist/ ./
+          eval "$(ssh-agent -s)"
+          export SSH_ASKPASS=~/.ssh/ssh_askpass.sh
+          export SSH_ASKPASS_REQUIRE=force
+          export DISPLAY=:0
+          setsid ssh-add ~/.ssh/deploy_key < /dev/null
 
-            # Upload backend (to public_html/api)
-            mirror -R --delete --verbose --no-perms darulkitab-backend/api/ ./api/
+          {
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
 
-            bye;
-          "
+      - name: Deploy via SSH and rsync
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_REMOTE_DIR: ${{ secrets.SSH_REMOTE_DIR }}
+        run: |
+          SSH_PORT="${SSH_PORT:-65002}"
+          REMOTE_DIR="${SSH_REMOTE_DIR:-public_html}"
+          SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
+          RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
+
+          $RSYNC_SSH "$SSH_TARGET" "mkdir -p \"$REMOTE_DIR\" \"$REMOTE_DIR/api\""
+
+          rsync -az --delete --itemize-changes \
+            --exclude='api/' \
+            --exclude='storage/' \
+            -e "$RSYNC_SSH" \
+            darulkitab-frontend/dist/ "$SSH_TARGET:$REMOTE_DIR/"
+
+          rsync -az --delete --itemize-changes \
+            --exclude='storage/' \
+            -e "$RSYNC_SSH" \
+            darulkitab-backend/api/ "$SSH_TARGET:$REMOTE_DIR/api/"
