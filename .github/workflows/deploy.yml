@@ -167,7 +167,14 @@ jobs:
           SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
           RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
 
-          $RSYNC_SSH "$SSH_TARGET" "mkdir -p \"$REMOTE_DIR\" \"$REMOTE_DIR/api\""
+          $RSYNC_SSH "$SSH_TARGET" "
+            if [ \"$REMOTE_DIR\" != '.' ] && [ ! -d \"$REMOTE_DIR\" ]; then
+              mkdir \"$REMOTE_DIR\"
+            fi
+            if [ ! -d \"$REMOTE_DIR/api\" ]; then
+              mkdir -p \"$REMOTE_DIR/api\"
+            fi
+          "
 
           rsync -az --delete --itemize-changes \
             --exclude='api/' \
