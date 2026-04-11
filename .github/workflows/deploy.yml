@@ -163,14 +163,11 @@ jobs:
           SSH_REMOTE_DIR: ${{ secrets.SSH_REMOTE_DIR }}
         run: |
           SSH_PORT="${SSH_PORT:-65002}"
-          REMOTE_DIR="${SSH_REMOTE_DIR:-public_html}"
+          REMOTE_DIR="${SSH_REMOTE_DIR:-.}"
           SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
           RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
 
           $RSYNC_SSH "$SSH_TARGET" "
-            if [ \"$REMOTE_DIR\" != '.' ] && [ ! -d \"$REMOTE_DIR\" ]; then
-              mkdir \"$REMOTE_DIR\"
-            fi
             if [ ! -d \"$REMOTE_DIR/api\" ]; then
               mkdir -p \"$REMOTE_DIR/api\"
             fi
