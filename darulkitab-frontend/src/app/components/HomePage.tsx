@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import api from '../api/axios';
-import { SURAHS, RECITERS, SAMPLE_AYAHS } from '../data/mock-data';
-import { Play, Crown, BookOpen, Headphones, Sparkles, Award, Clock, Heart, TrendingUp } from 'lucide-react';
+import { RECITERS, SAMPLE_AYAHS } from '../data/mock-data';
+import { Play, Crown, BookOpen, Headphones, Award } from 'lucide-react';
 
 interface ContinueItem {
   audio_id: number;
@@ -38,6 +38,7 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
   const [continueItems, setContinueItems] = useState<ContinueItem[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const wasPlayingRef = React.useRef(false);
+  const hasContinueItems = continueItems.length > 0;
 
   const fetchData = React.useCallback(() => {
     api.get('/user/get-progress.php').then(res => {
@@ -150,21 +151,20 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       </div>
 
       {/* Continue Listening — real data from API */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          
-          <h3 className="text-xl mb-4 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" />
-          Continue Listening
-        </h3>
-          <button
-            onClick={() => onNavigate('surah-list')}
-            className="text-sm text-primary hover:underline"
-          >
-            View All
-          </button>
-        </div>
-        {continueItems.length > 0 ? (
+      {hasContinueItems ? (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl mb-4 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Continue Listening
+            </h3>
+            <button
+              onClick={() => onNavigate('surah-list')}
+              className="text-sm text-primary hover:underline"
+            >
+              View All
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {continueItems.map((item) => {
               const progressPct = item.duration_seconds > 0
@@ -220,9 +220,17 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
               );
             })}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SAMPLE_AYAHS.slice(0, 2).map((ayah) => (
+        </section>
+      ) : (
+        <div className="mb-8">
+          <button
+            onClick={() => onNavigate('surah-list')}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <BookOpen className="w-4 h-4" />
+            Start your journery
+          </button>
+          {/*
               <div
                 key={ayah.id}
                 className="bg-card p-4 rounded-2xl border border-border hover:border-primary transition-colors cursor-pointer group"
@@ -248,7 +256,9 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
             ))}
           </div>
         )}
-      </section>
+          */}
+        </div>
+      )}
 
       {/* Popular Reciters */}
       <section className="mb-8 hidden">
