@@ -166,7 +166,25 @@ jobs:
           SSH_PORT="${SSH_PORT:-65002}"
           REMOTE_DIR="${SSH_REMOTE_DIR:-}"
           SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
-          RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes -o PreferredAuthentications=publickey -o PasswordAuthentication=no"
+
+          required_deploy_vars=(
+            SSH_HOST
+            SSH_USERNAME
+            SSH_REMOTE_DIR
+          )
+
+          missing_deploy_vars=()
+          for var_name in "${required_deploy_vars[@]}"; do
+            if [ -z "${!var_name}" ]; then
+              missing_deploy_vars+=("$var_name")
+            fi
+          done
+
+          if [ "${#missing_deploy_vars[@]}" -gt 0 ]; then
+            echo "Missing required deploy secrets: ${missing_deploy_vars[*]}"
+            exit 1
+          fi
 
           if [ -z "$REMOTE_DIR" ]; then
             echo "Missing required SSH_REMOTE_DIR secret. Use the website webroot, for example: public_html"
@@ -185,6 +203,22 @@ jobs:
           if [ "${RSYNC_DELETE:-false}" = "true" ]; then
             DELETE_FLAGS+=(--delete)
           fi
+
+          if ! ssh-add -l > /dev/null 2>&1; then
+            echo "SSH agent has no loaded key."
+            echo "Check SSH_PRIVATE_KEY and SSH_PASSPHRASE secrets."
+            exit 1
+          fi
+
+          echo "Running SSH authentication preflight..."
+          if ! $RSYNC_SSH "$SSH_TARGET" "printf 'SSH_AUTH_OK\n'" > /tmp/ssh_preflight.log 2>&1; then
+            cat /tmp/ssh_preflight.log
+            echo "SSH authentication failed."
+            echo "Verify SSH_HOST, SSH_PORT, SSH_USERNAME, SSH_PRIVATE_KEY, SSH_PASSPHRASE, and SSH_KNOWN_HOSTS."
+            echo "Also confirm the matching public key is installed in Hostinger SSH access for this SSH user."
+            exit 1
+          fi
+          cat /tmp/ssh_preflight.log
 
           $RSYNC_SSH "$SSH_TARGET" "
             if [ ! -d \"$REMOTE_DIR\" ]; then
