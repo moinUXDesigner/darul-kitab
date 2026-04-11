@@ -161,25 +161,48 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_REMOTE_DIR: ${{ secrets.SSH_REMOTE_DIR }}
+          RSYNC_DELETE: ${{ secrets.RSYNC_DELETE }}
         run: |
           SSH_PORT="${SSH_PORT:-65002}"
-          REMOTE_DIR="${SSH_REMOTE_DIR:-.}"
+          REMOTE_DIR="${SSH_REMOTE_DIR:-}"
           SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
           RSYNC_SSH="ssh -p $SSH_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
 
+          if [ -z "$REMOTE_DIR" ]; then
+            echo "Missing required SSH_REMOTE_DIR secret. Use the website webroot, for example: public_html"
+            exit 1
+          fi
+
+          case "$REMOTE_DIR" in
+            "."|"./"|"/"|"~"|"~/")
+              echo "Refusing dangerous SSH_REMOTE_DIR value: $REMOTE_DIR"
+              echo "Use the website webroot path instead, for example: public_html"
+              exit 1
+              ;;
+          esac
+
+          DELETE_FLAGS=()
+          if [ "${RSYNC_DELETE:-false}" = "true" ]; then
+            DELETE_FLAGS+=(--delete)
+          fi
+
           $RSYNC_SSH "$SSH_TARGET" "
+            if [ ! -d \"$REMOTE_DIR\" ]; then
+              echo \"Remote directory does not exist: $REMOTE_DIR\"
+              exit 1
+            fi
             if [ ! -d \"$REMOTE_DIR/api\" ]; then
-              mkdir -p \"$REMOTE_DIR/api\"
+              mkdir \"$REMOTE_DIR/api\"
             fi
           "
 
-          rsync -az --delete --itemize-changes \
+          rsync -az "${DELETE_FLAGS[@]}" --itemize-changes \
             --exclude='api/' \
             --exclude='storage/' \
             -e "$RSYNC_SSH" \
             darulkitab-frontend/dist/ "$SSH_TARGET:$REMOTE_DIR/"
 
-          rsync -az --delete --itemize-changes \
+          rsync -az "${DELETE_FLAGS[@]}" --itemize-changes \
             --exclude='storage/' \
             -e "$RSYNC_SSH" \
             darulkitab-backend/api/ "$SSH_TARGET:$REMOTE_DIR/api/"
