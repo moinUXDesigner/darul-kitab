@@ -20,13 +20,33 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [supportHint, setSupportHint] = useState('');
 
   useEffect(() => {
-    const supported =
-      'serviceWorker' in navigator &&
-      'PushManager' in window &&
-      'Notification' in window;
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotificationApi = 'Notification' in window;
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+    const hasSecureContext = window.isSecureContext || isLocalhost;
+    const supported = hasServiceWorker && hasPushManager && hasNotificationApi && hasSecureContext;
     setIsSupported(supported);
+    setSupportHint('');
+
+    if (!hasNotificationApi || !hasServiceWorker || !hasPushManager) {
+      setStatusMessage('Push notifications are not available in this browser.');
+      setSupportHint('Use a modern browser with service worker and push support enabled.');
+      return;
+    }
+
+    if (!hasSecureContext) {
+      setStatusMessage('Push notifications require a secure HTTPS connection before they can be enabled.');
+      setSupportHint(`You are currently on ${window.location.origin}. Open the app on your HTTPS domain, or use http://localhost for local testing.`);
+      return;
+    }
+
+    setStatusMessage('Get alerts for new content and important updates.');
 
     if (supported) {
       setPermission(Notification.permission);
@@ -39,13 +59,24 @@ export function usePushNotifications() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       setIsSubscribed(!!sub);
+      setStatusMessage(
+        sub
+          ? 'Push notifications are enabled on this device.'
+          : Notification.permission === 'denied'
+            ? 'Notifications are blocked in your browser settings.'
+            : 'Push notifications are available but not enabled yet.',
+      );
     } catch {
       setIsSubscribed(false);
+      setStatusMessage('Push notifications are available but this device is not subscribed yet.');
     }
   };
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) return false;
+    if (!isSupported) {
+      setStatusMessage('Push notifications are unavailable in this browser or context.');
+      return false;
+    }
     setLoading(true);
 
     try {
@@ -53,6 +84,11 @@ export function usePushNotifications() {
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== 'granted') {
+        setStatusMessage(
+          perm === 'denied'
+            ? 'Notifications are blocked. Enable them in your browser settings to receive alerts.'
+            : 'Notification permission was not granted.',
+        );
         setLoading(false);
         return false;
       }
@@ -77,9 +113,11 @@ export function usePushNotifications() {
       });
 
       setIsSubscribed(true);
+      setStatusMessage('Push notifications are enabled on this device.');
       return true;
     } catch (err) {
       console.error('[Push] Subscribe failed:', err);
+      setStatusMessage('We could not enable push notifications right now. Please try again.');
       return false;
     } finally {
       setLoading(false);
@@ -101,9 +139,11 @@ export function usePushNotifications() {
       }
 
       setIsSubscribed(false);
+      setStatusMessage('Push notifications are turned off on this device.');
       return true;
     } catch (err) {
       console.error('[Push] Unsubscribe failed:', err);
+      setStatusMessage('We could not turn off push notifications right now. Please try again.');
       return false;
     } finally {
       setLoading(false);
@@ -120,6 +160,8 @@ export function usePushNotifications() {
     isSubscribed,
     permission,
     loading,
+    statusMessage,
+    supportHint,
     subscribe,
     unsubscribe,
     toggle,

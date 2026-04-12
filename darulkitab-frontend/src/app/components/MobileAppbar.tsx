@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Menu, Sun, Moon, Settings, X } from 'lucide-react';
+import { Menu, Sun, Moon, Settings, X, Library, MessageSquare, Home, Search, BookOpen, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { FeedbackDialog } from './FeedbackDialog';
+import { useNotificationsSummary } from '../hooks/useNotifications';
 
 interface MobileAppbarProps {
   theme: 'light' | 'dark';
@@ -12,6 +14,17 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
   const { user } = useAuth();
   const initials = user?.user_name?.charAt(0).toUpperCase() || 'U';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { unreadCount } = useNotificationsSummary();
+
+  const drawerItems = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'surah-list', label: 'All Suras', icon: BookOpen },
+    { id: 'search', label: 'Search', icon: Search },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'library', label: 'Library', icon: Library },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
 
   return (
     <>
@@ -23,6 +36,27 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
 
         {/* Right section */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => onNavigate('notifications')}
+            className="relative p-2 rounded-xl hover:bg-muted transition-colors"
+            aria-label="Open notifications"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold text-primary-foreground">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="p-2 rounded-xl hover:bg-muted transition-colors"
+            aria-label="Open feedback form"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+
           {/* Theme toggle */}
           <button
             onClick={onToggleTheme}
@@ -61,9 +95,7 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
               </button>
             </div>
             <nav className="flex-1 space-y-1">
-              {[
-                { id: 'settings', label: 'Settings', icon: Settings },
-              ].map(item => (
+              {drawerItems.map(item => (
                 <button
                   key={item.id}
                   onClick={() => { onNavigate(item.id); setMenuOpen(false); }}
@@ -71,6 +103,11 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {item.id === 'notifications' && unreadCount > 0 && (
+                    <span className="ml-auto min-w-6 rounded-full bg-primary px-2 py-0.5 text-center text-[11px] font-semibold text-primary-foreground">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -80,6 +117,8 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
           </aside>
         </div>
       )}
+
+      <FeedbackDialog isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
 }

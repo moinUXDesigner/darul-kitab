@@ -1,6 +1,7 @@
 import React from 'react';
 import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificationsSummary } from '../hooks/useNotifications';
 
 interface SidebarProps {
   activePage: string;
@@ -10,12 +11,14 @@ interface SidebarProps {
 
 export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
   const { isPremium, isAdmin, logout } = useAuth();
+  const { unreadCount } = useNotificationsSummary();
   const logoSrc = `${import.meta.env.BASE_URL}Logo.png`;
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'surah-list', label: 'Surahs', icon: BookOpen },
     { id: 'search', label: 'Search', icon: Search },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'library', label: 'Saved', icon: Library },
     { id: 'subscription', label: 'Premium', icon: Crown },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -93,6 +96,11 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
                     <item.icon className="w-[18px] h-[18px]" />
                   </span>
                   {!isCollapsed && <span className="text-[15px] font-medium tracking-tight">{item.label}</span>}
+                  {!isCollapsed && item.id === 'notifications' && unreadCount > 0 && (
+                    <span className="ml-auto min-w-6 rounded-full bg-primary px-2 py-0.5 text-center text-[11px] font-semibold text-primary-foreground">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                   {!isCollapsed && item.id === 'subscription' && isPremium && (
                     <span className="ml-auto text-[11px] px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold">
                       Pro

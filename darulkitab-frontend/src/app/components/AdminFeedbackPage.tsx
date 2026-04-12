@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { ArrowLeft, MessageSquare, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface FeedbackItem {
   name: string;
@@ -19,10 +19,17 @@ export function AdminFeedbackPage({ onNavigate }: { onNavigate: (page: string) =
 
   const fetchFeedback = (p: number) => {
     setLoading(true);
+    setError(null);
     api.get(`/admin/feedback.php?page=${p}&limit=${limit}`)
       .then(res => {
-        setFeedback(res.data.data || []);
-        setTotal(res.data.total || 0);
+        const responseData = res.data;
+        const items = Array.isArray(responseData?.data)
+          ? responseData.data
+          : Array.isArray(responseData)
+            ? responseData
+            : [];
+        setFeedback(items);
+        setTotal(Number(responseData?.total ?? items.length ?? 0));
       })
       .catch(err => setError(err?.response?.data?.message || 'Failed to load feedback'))
       .finally(() => setLoading(false));
@@ -43,6 +50,14 @@ export function AdminFeedbackPage({ onNavigate }: { onNavigate: (page: string) =
           <h1 className="text-3xl mb-1">User Feedback</h1>
           <p className="text-muted-foreground">{total} total submissions</p>
         </div>
+        <button
+          type="button"
+          onClick={() => fetchFeedback(page)}
+          className="ml-auto inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
       </div>
 
       {loading ? (

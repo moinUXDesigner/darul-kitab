@@ -44,6 +44,8 @@ interface AudioPlayerContextType {
   maximize: () => void;
   close: () => void;
   toggleFavorite: () => Promise<void>;
+  markTrackComplete: (audioId?: string | number) => Promise<void>;
+  resetTrackProgress: (audioId?: string | number) => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -53,6 +55,13 @@ const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(und
 ================================ */
 
 const SAVE_INTERVAL_MS = 15_000; // auto-save every 15 seconds
+const PROGRESS_UPDATED_EVENT = 'darulkitab-progress-updated';
+
+function emitProgressUpdated(detail?: Record<string, unknown>) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(PROGRESS_UPDATED_EVENT, { detail }));
+  }
+}
 
 function requiresPremiumAccess(ayah: AyahData | null | undefined): boolean {
   if (!ayah) return false;
@@ -65,6 +74,11 @@ async function saveProgressToServer(audioId: string | number, position: number, 
       audio_id: Number(audioId),
       position_seconds: position,
       duration_seconds: dur,
+    });
+    emitProgressUpdated({
+      audioId: Number(audioId),
+      positionSeconds: position,
+      durationSeconds: dur,
     });
   } catch {
     // silent – progress save is best-effort
@@ -164,6 +178,73 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       // silent
     }
   }, [isFavorite]);
+
+  const markTrackComplete = useCallback(async (audioId?: string | number) => {
+    const targetId = audioId ?? currentAyahRef.current?.id;
+    if (!targetId) return;
+
+    const audio = audioRef.current;
+    const isCurrentTrack = currentAyahRef.current?.id === targetId;
+    const effectiveDuration = isCurrentTrack
+      ? Number(audio?.duration || duration || currentTime || 0)
+      : 0;
+
+    try {
+      await api.post('/user/save-progress.php', {
+        audio_id: Number(targetId),
+        duration_seconds: effectiveDuration,
+        mark_complete: true,
+      });
+
+      if (isCurrentTrack && audio) {
+        const nextDuration = effectiveDuration || audio.duration || 0;
+        if (nextDuration > 0) {
+          audio.currentTime = nextDuration;
+          setCurrentTime(nextDuration);
+          setDuration(nextDuration);
+        }
+        setIsPlaying(false);
+      }
+
+      emitProgressUpdated({
+        audioId: Number(targetId),
+        completed: true,
+      });
+    } catch {
+      // silent
+    }
+  }, [currentTime, duration]);
+
+  const resetTrackProgress = useCallback(async (audioId?: string | number) => {
+    const targetId = audioId ?? currentAyahRef.current?.id;
+    if (!targetId) return;
+
+    const audio = audioRef.current;
+    const isCurrentTrack = currentAyahRef.current?.id === targetId;
+    const effectiveDuration = isCurrentTrack
+      ? Number(audio?.duration || duration || 0)
+      : 0;
+
+    try {
+      await api.post('/user/save-progress.php', {
+        audio_id: Number(targetId),
+        duration_seconds: effectiveDuration,
+        reset: true,
+      });
+
+      if (isCurrentTrack && audio) {
+        audio.currentTime = 0;
+        setCurrentTime(0);
+      }
+
+      emitProgressUpdated({
+        audioId: Number(targetId),
+        reset: true,
+      });
+    } catch {
+      // silent
+    }
+  }, [duration]);
 
   /* ---- Play single track ---- */
   const play = useCallback((ayah: AyahData) => {
@@ -469,6 +550,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         maximize,
         close,
         toggleFavorite,
+        markTrackComplete,
+        resetTrackProgress,
       }}
     >
       {children}

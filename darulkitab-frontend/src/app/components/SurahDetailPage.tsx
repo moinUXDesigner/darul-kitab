@@ -1,198 +1,10 @@
-// import React, { useState } from "react";
-// import { useAuth } from "../contexts/AuthContext";
-// import { useAudioPlayer } from "../contexts/AudioPlayerContext";
-// import { RECITERS } from "../data/mock-data";
-// import { Play, Crown, ChevronLeft, BookOpen } from "lucide-react";
-
-// interface Surah {
-//   number: number;
-//   name: string;
-//   nameArabic: string;
-//   translation: string;
-//   verses: number;
-//   type: string;
-// }
-
-// export function SurahDetailPage({
-//   surah,
-//   onNavigate,
-// }: {
-//   surah: Surah;
-//   onNavigate: (page: string, data?: any) => void;
-// }) {
-//   const { isPremium } = useAuth();
-//   const { play } = useAudioPlayer();
-//   const [selectedReciter, setSelectedReciter] = useState(RECITERS[0]);
-
-//   // Generate mock ayahs for this surah
-//   const ayahs = Array.from({ length: Math.min(surah.verses, 10) }, (_, i) => ({
-//     id: `${surah.number}-${i + 1}`,
-//     surahNumber: surah.number,
-//     surahName: surah.name,
-//     surahNameArabic: surah.nameArabic,
-//     ayahNumber: i + 1,
-//     arabicText:
-//       i === 0
-//         ? "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
-//         : `آية رقم ${i + 1} من سورة ${surah.nameArabic}`,
-//     translation: `Ayah ${i + 1} translation from ${
-//       surah.name
-//     }. This is a sample translation text.`,
-//     reciter: selectedReciter.name,
-//     audioUrl: "#",
-//     isPremium: selectedReciter.isPremium,
-//   }));
-
-//   const handlePlayAyah = (ayah: (typeof ayahs)[0]) => {
-//     if (ayah.isPremium && !isPremium) {
-//       onNavigate("subscription");
-//       return;
-//     }
-//     play(ayah);
-//   };
-
-//   const handlePlayAll = () => {
-//     if (selectedReciter.isPremium && !isPremium) {
-//       onNavigate("subscription");
-//       return;
-//     }
-//     play(ayahs[0]);
-//   };
-
-//   return (
-//     <div className="pb-32 md:pb-8">
-//       {/* Header */}
-//       <button
-//         onClick={() => onNavigate("surah-list")}
-//         className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
-//       >
-//         <ChevronLeft className="w-5 h-5" />
-//         Back to Surahs
-//       </button>
-
-//       {/* Surah Header Card */}
-//       <div className="bg-gradient-to-br from-primary to-secondary p-8 rounded-3xl text-white text-center mb-6">
-//         <div className="mb-4">
-//           <BookOpen className="w-12 h-12 mx-auto opacity-80" />
-//         </div>
-//         <h1 className="text-3xl mb-2">{surah.name}</h1>
-//         <p
-//           style={{ fontFamily: "var(--font-family-arabic)" }}
-//           className="text-4xl mb-3"
-//         >
-//           {surah.nameArabic}
-//         </p>
-//         <p className="text-white/80 mb-2">{surah.translation}</p>
-//         <p className="text-white/60 text-sm">
-//           {surah.verses} verses • {surah.type}
-//         </p>
-//       </div>
-
-//       {/* Reciter Selector */}
-//       <div className="mb-6">
-//         <label className="block mb-3">Select Reciter</label>
-//         <div className="relative">
-//           <select
-//             value={selectedReciter.id}
-//             onChange={(e) => {
-//               const reciter = RECITERS.find((r) => r.id === e.target.value);
-//               if (reciter) setSelectedReciter(reciter);
-//             }}
-//             className="w-full px-4 py-3 rounded-2xl bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary appearance-none pr-10"
-//           >
-//             {RECITERS.map((reciter) => (
-//               <option key={reciter.id} value={reciter.id}>
-//                 {reciter.name} {reciter.isPremium && !isPremium ? "👑" : ""}
-//               </option>
-//             ))}
-//           </select>
-//           <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground rotate-[-90deg] pointer-events-none" />
-//         </div>
-//         {selectedReciter.isPremium && !isPremium && (
-//           <p className="text-sm text-accent mt-2 flex items-center gap-1">
-//             <Crown className="w-4 h-4" />
-//             Premium reciter - Upgrade to unlock
-//           </p>
-//         )}
-//       </div>
-
-//       {/* Play All Button */}
-//       <button
-//         onClick={handlePlayAll}
-//         className="w-full py-4 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mb-6 flex items-center justify-center gap-2"
-//       >
-//         <Play className="w-5 h-5" />
-//         Play All ({surah.verses} verses)
-//       </button>
-
-//       {/* Ayah List */}
-//       <div className="space-y-4">
-//         <h3 className="text-lg mb-3">Ayahs</h3>
-//         {ayahs.map((ayah) => (
-//           <div
-//             key={ayah.id}
-//             className="bg-card p-5 rounded-2xl border border-border hover:border-primary transition-colors cursor-pointer group"
-//             onClick={() => handlePlayAyah(ayah)}
-//           >
-//             <div className="flex items-start gap-4">
-//               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-//                 <span className="text-sm text-primary">{ayah.ayahNumber}</span>
-//               </div>
-//               <div className="flex-1 min-w-0">
-//                 <div
-//                   className="mb-3"
-//                   style={{
-//                     fontFamily: "var(--font-family-arabic)",
-//                     lineHeight: 1.8,
-//                   }}
-//                 >
-//                   <p className="text-xl leading-loose">{ayah.arabicText}</p>
-//                 </div>
-//                 <p className="text-muted-foreground text-sm mb-3 italic">
-//                   "{ayah.translation}"
-//                 </p>
-//                 <div className="flex items-center justify-between">
-//                   <div className="flex items-center gap-2">
-//                     <Play className="w-4 h-4 text-primary" />
-//                     <span className="text-sm text-muted-foreground">
-//                       {selectedReciter.name}
-//                     </span>
-//                   </div>
-//                   {ayah.isPremium && !isPremium && (
-//                     <span className="flex items-center gap-1 text-sm text-accent">
-//                       <Crown className="w-4 h-4" />
-//                       Premium
-//                     </span>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         ))}
-//         {surah.verses > 10 && (
-//           <div className="text-center py-4">
-//             <p className="text-muted-foreground text-sm">
-//               Showing 10 of {surah.verses} verses
-//             </p>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import api from "../api/axios";
-import { useAudioPlayer, AyahData } from "../contexts/AudioPlayerContext";
-import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock, RotateCcw, CircleCheck } from "lucide-react";
-
-/* ================================
-   TYPES (MATCH DB)
-================================ */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import api from '../api/axios';
+import { useAudioPlayer, AyahData } from '../contexts/AudioPlayerContext';
+import { ChevronLeft, Play, BookOpen, CheckCircle2, Clock, RotateCcw, CircleCheck } from 'lucide-react';
 
 interface Surah {
-  id: number;               // surah number
+  id: number;
   arabic_name: string;
   english_name: string;
   ayah_count: number;
@@ -208,10 +20,6 @@ interface AyahAudio {
   duration_seconds: number | null;
 }
 
-/* ================================
-   COMPONENT
-================================ */
-
 export function SurahDetailPage({
   surah,
   onNavigate,
@@ -219,17 +27,17 @@ export function SurahDetailPage({
   surah: Surah;
   onNavigate: (page: string, data?: any) => void;
 }) {
-  const { play, playQueue, isPlaying, currentAyah, currentTime, duration } = useAudioPlayer();
+  const { play, playQueue, isPlaying, currentAyah, currentTime, duration, markTrackComplete, resetTrackProgress } = useAudioPlayer();
 
   const [ayahAudios, setAyahAudios] = useState<AyahAudio[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [progressMap, setProgressMap] = useState<Record<number, { position: number; duration: number; completed: boolean }>>({});
   const [confirmAction, setConfirmAction] = useState<{ audioId: number; type: 'complete' | 'reset' } | null>(null);
   const wasPlayingRef = useRef(false);
 
   const fetchProgress = useCallback(() => {
-    api.get(`/user/get-progress.php?surah_no=${surah.id}`).then(res => {
+    api.get(`/user/get-progress.php?surah_no=${surah.id}`).then((res) => {
       if (Array.isArray(res.data)) {
         const map: Record<number, { position: number; duration: number; completed: boolean }> = {};
         for (const p of res.data) {
@@ -247,12 +55,10 @@ export function SurahDetailPage({
   useEffect(() => {
     const fetchAyahs = async () => {
       try {
-        const res = await api.get(
-          `/quran/surah-audio.php?surah_no=${surah.id}`
-        );
+        const res = await api.get(`/quran/surah-audio.php?surah_no=${surah.id}`);
         setAyahAudios(res.data);
       } catch {
-        setError("Failed to load ayahs");
+        setError('Failed to load ayahs');
       } finally {
         setLoading(false);
       }
@@ -261,9 +67,14 @@ export function SurahDetailPage({
     fetchAyahs();
   }, [surah.id]);
 
-  // Fetch progress for this surah
   useEffect(() => {
     fetchProgress();
+  }, [fetchProgress]);
+
+  useEffect(() => {
+    const handleProgressUpdated = () => fetchProgress();
+    window.addEventListener('darulkitab-progress-updated', handleProgressUpdated);
+    return () => window.removeEventListener('darulkitab-progress-updated', handleProgressUpdated);
   }, [fetchProgress]);
 
   useEffect(() => {
@@ -276,25 +87,21 @@ export function SurahDetailPage({
   }, [fetchProgress, isPlaying]);
 
   const handleMarkComplete = async (audioId: number) => {
-    try {
-      await api.post('/user/save-progress.php', { audio_id: audioId, mark_complete: true });
-      setProgressMap(prev => ({
-        ...prev,
-        [audioId]: { position: prev[audioId]?.duration || 0, duration: prev[audioId]?.duration || 0, completed: true },
-      }));
-    } catch { /* silent */ }
+    await markTrackComplete(audioId);
+    setProgressMap((prev) => ({
+      ...prev,
+      [audioId]: { position: prev[audioId]?.duration || 0, duration: prev[audioId]?.duration || 0, completed: true },
+    }));
     setConfirmAction(null);
   };
 
   const handleReset = async (audioId: number) => {
-    try {
-      await api.post('/user/save-progress.php', { audio_id: audioId, reset: true });
-      setProgressMap(prev => {
-        const next = { ...prev };
-        delete next[audioId];
-        return next;
-      });
-    } catch { /* silent */ }
+    await resetTrackProgress(audioId);
+    setProgressMap((prev) => {
+      const next = { ...prev };
+      delete next[audioId];
+      return next;
+    });
     setConfirmAction(null);
   };
 
@@ -307,8 +114,8 @@ export function SurahDetailPage({
       surahNameArabic: surah.arabic_name,
       ayahNumber: audio.ayah_start || 0,
       ayahEnd: audio.ayah_end || undefined,
-      title: `Surah ${surah.english_name} (${audio.ayah_start}${audio.ayah_end ? "-" + audio.ayah_end : ""})`,
-      reciter: audio.reciter || "Unknown",
+      title: `Surah ${surah.english_name} (${audio.ayah_start}${audio.ayah_end ? `-${audio.ayah_end}` : ''})`,
+      reciter: audio.reciter || 'Unknown',
       audioUrl: `${api.defaults.baseURL}quran/stream.php?id=${audio.id}&token=${encodeURIComponent(token)}`,
       isPremium: false,
     };
@@ -320,7 +127,7 @@ export function SurahDetailPage({
 
   const playAll = () => {
     if (ayahAudios.length > 0) {
-      const queueData = ayahAudios.map(a => buildAyahData(a));
+      const queueData = ayahAudios.map((audio) => buildAyahData(audio));
       playQueue(queueData, 0);
     }
   };
@@ -335,9 +142,7 @@ export function SurahDetailPage({
 
     const liveDuration = Number(duration || audio.duration_seconds || saved?.duration || 0);
     const livePosition = Number(currentTime || saved?.position || 0);
-    const effectivePosition = liveDuration > 0
-      ? Math.min(livePosition, liveDuration)
-      : livePosition;
+    const effectivePosition = liveDuration > 0 ? Math.min(livePosition, liveDuration) : livePosition;
 
     return {
       position: Math.max(saved?.position || 0, effectivePosition),
@@ -346,23 +151,22 @@ export function SurahDetailPage({
     };
   };
 
-  // Calculate surah-level progress
   const totalTracks = ayahAudios.length;
-  const completedTracks = ayahAudios.filter(audio => getEffectiveProgress(audio)?.completed).length;
+  const completedTracks = ayahAudios.filter((audio) => getEffectiveProgress(audio)?.completed).length;
   const totalDuration = ayahAudios.reduce((sum, audio) => sum + Number(audio.duration_seconds || 0), 0);
   const listenedDuration = ayahAudios.reduce((sum, audio) => {
-    const prog = getEffectiveProgress(audio);
-    const trackDuration = Number(audio.duration_seconds || prog?.duration || 0);
-    if (!prog) return sum;
-    if (prog.completed) return sum + trackDuration;
-    return sum + Math.min(Number(prog.position || 0), trackDuration);
+    const progress = getEffectiveProgress(audio);
+    const trackDuration = Number(audio.duration_seconds || progress?.duration || 0);
+    if (!progress) return sum;
+    if (progress.completed) return sum + trackDuration;
+    return sum + Math.min(Number(progress.position || 0), trackDuration);
   }, 0);
   const surahProgressPct = totalDuration > 0
     ? Math.round((Math.min(listenedDuration, totalDuration) / totalDuration) * 100)
     : 0;
 
   if (loading) {
-    return <div className="text-center py-20">Loading ayahs…</div>;
+    return <div className="py-20 text-center">Loading ayahs...</div>;
   }
 
   if (error) {
@@ -371,139 +175,135 @@ export function SurahDetailPage({
 
   return (
     <div className="pb-32 md:pb-8">
-      {/* Back */}
-      <button
-        onClick={() => onNavigate("surah-list")}
-        className="flex items-center gap-2 text-muted-foreground mb-6"
-      >
-        <ChevronLeft className="w-5 h-5" />
+      <button onClick={() => onNavigate('surah-list')} className="mb-6 flex items-center gap-2 text-muted-foreground">
+        <ChevronLeft className="h-5 w-5" />
         Back to Surahs
       </button>
 
-      {/* Header */}
-      <div className="bg-gradient-to-br from-primary to-secondary p-8 rounded-3xl text-white text-center mb-6">
-        <BookOpen className="w-12 h-12 mx-auto opacity-80 mb-4" />
-        <h1 className="text-3xl mb-2">{surah.english_name}</h1>
-        <p
-          style={{ fontFamily: "var(--font-family-arabic)" }}
-          className="text-4xl mb-3"
-        >
+      <div className="mb-6 rounded-3xl bg-gradient-to-br from-primary to-secondary p-8 text-center text-white">
+        <BookOpen className="mx-auto mb-4 h-12 w-12 opacity-80" />
+        <h1 className="mb-2 text-3xl">{surah.english_name}</h1>
+        <p style={{ fontFamily: 'var(--font-family-arabic)' }} className="mb-3 text-4xl">
           {surah.arabic_name}
         </p>
-        <p className="text-white/60 text-sm mb-3">
-          {surah.ayah_count} verses • {surah.revelation_type}
+        <p className="mb-3 text-sm text-white/60">
+          {surah.ayah_count} verses � {surah.revelation_type}
         </p>
         {totalTracks > 0 && (
-          <div className="mt-2 max-w-xs mx-auto">
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full transition-all"
-                style={{ width: `${surahProgressPct}%` }}
-              />
+          <div className="mx-auto mt-2 max-w-xs">
+            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div className="h-full rounded-full bg-white transition-all" style={{ width: `${surahProgressPct}%` }} />
             </div>
-            <p className="text-white/80 text-xs mt-1">
-              {completedTracks}/{totalTracks} tracks • {surahProgressPct}% complete
+            <p className="mt-1 text-xs text-white/80">
+              {completedTracks}/{totalTracks} tracks � {surahProgressPct}% complete
             </p>
           </div>
         )}
       </div>
 
-      {/* Play All */}
       <button
         onClick={playAll}
-        className="w-full py-4 rounded-2xl bg-primary text-primary-foreground mb-6 flex items-center justify-center gap-2"
+        className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-primary-foreground"
       >
-        <Play className="w-5 h-5" />
+        <Play className="h-5 w-5" />
         Play All
       </button>
 
-      {/* Ayah Audio List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {ayahAudios.map((audio) => {
-          const prog = getEffectiveProgress(audio);
-          const trackPct = prog && prog.duration > 0
-            ? Math.round((prog.position / prog.duration) * 100)
+          const progress = getEffectiveProgress(audio);
+          const trackPct = progress && progress.duration > 0
+            ? Math.round((progress.position / progress.duration) * 100)
             : 0;
 
           return (
-            <div
-              key={audio.id}
-              onClick={() => playAyah(audio)}
-              className="bg-card p-4 rounded-2xl border border-border hover:border-primary cursor-pointer flex items-center justify-between"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Ayah {audio.ayah_start}
-                    {audio.ayah_end ? `–${audio.ayah_end}` : ""}
-                  </span>
-                  {prog?.completed && (
-                    <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Reciter: {audio.reciter || "Unknown"}
-                </div>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${trackPct}%` }}
-                    />
-                  </div>
-                  {prog && prog.position > 0 && !prog.completed && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
-                      <Clock className="w-3 h-3" />
-                      {Math.floor(prog.position / 60)}:{Math.floor(prog.position % 60).toString().padStart(2, '0')}
+            <div key={audio.id} className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
+              <div className="flex items-start gap-4">
+                <button
+                  type="button"
+                  onClick={() => playAyah(audio)}
+                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                  aria-label={`Play ayah ${audio.ayah_start}`}
+                >
+                  <Play className="ml-0.5 h-4 w-4" />
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">
+                      Ayah {audio.ayah_start}
+                      {audio.ayah_end ? `-${audio.ayah_end}` : ''}
                     </span>
-                  )}
-                  {prog?.completed && (
-                    <span className="text-xs text-green-500 whitespace-nowrap">Done</span>
-                  )}
+                    {progress?.completed && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />}
+                    {currentAyah?.id === audio.id && (
+                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                        Playing now
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Reciter: {audio.reciter || 'Unknown'}
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${trackPct}%` }} />
+                    </div>
+                    {progress && progress.position > 0 && !progress.completed && (
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {Math.floor(progress.position / 60)}:{Math.floor(progress.position % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                    {progress?.completed && <span className="whitespace-nowrap text-xs text-green-500">Done</span>}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                {!prog?.completed && (
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {!progress?.completed && (
                   <button
-                    title="Mark as complete"
-                    onClick={(e) => { e.stopPropagation(); setConfirmAction({ audioId: audio.id, type: 'complete' }); }}
-                    className="p-1.5 rounded-lg hover:bg-green-500/10 text-muted-foreground hover:text-green-500 transition-colors"
+                    type="button"
+                    onClick={() => setConfirmAction({ audioId: audio.id, type: 'complete' })}
+                    className="inline-flex items-center gap-2 rounded-full border border-green-500/25 bg-green-500/8 px-4 py-2 text-sm text-green-700 transition-colors hover:bg-green-500/14"
                   >
-                    <CircleCheck className="w-4 h-4" />
+                    <CircleCheck className="h-4 w-4" />
+                    Mark as complete
                   </button>
                 )}
-                {prog && (prog.position > 0 || prog.completed) && (
+
+                {progress && (progress.position > 0 || progress.completed) && (
                   <button
-                    title="Reset progress"
-                    onClick={(e) => { e.stopPropagation(); setConfirmAction({ audioId: audio.id, type: 'reset' }); }}
-                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                    type="button"
+                    onClick={() => setConfirmAction({ audioId: audio.id, type: 'reset' })}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <RotateCcw className="h-4 w-4" />
+                    Reset Track
                   </button>
                 )}
-                <Play className="w-4 h-4 text-primary" />
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Confirmation Dialog */}
       {confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmAction(null)}>
-          <div className="bg-card rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl border border-border" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-medium mb-2">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-2 text-lg font-medium">
               {confirmAction.type === 'complete' ? 'Mark as Complete?' : 'Reset Progress?'}
             </h3>
-            <p className="text-sm text-muted-foreground mb-5">
+            <p className="mb-5 text-sm text-muted-foreground">
               {confirmAction.type === 'complete'
                 ? 'This will mark this track as fully listened.'
                 : 'This will reset all listening progress for this track to zero.'}
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmAction(null)}
-                className="px-4 py-2 rounded-xl border border-border hover:bg-muted transition-colors text-sm"
+                className="rounded-xl border border-border px-4 py-2 text-sm transition-colors hover:bg-muted"
               >
                 Cancel
               </button>
@@ -512,7 +312,7 @@ export function SurahDetailPage({
                   ? handleMarkComplete(confirmAction.audioId)
                   : handleReset(confirmAction.audioId)
                 }
-                className={`px-4 py-2 rounded-xl text-white text-sm transition-colors ${
+                className={`rounded-xl px-4 py-2 text-sm text-white transition-colors ${
                   confirmAction.type === 'complete'
                     ? 'bg-green-600 hover:bg-green-700'
                     : 'bg-red-600 hover:bg-red-700'

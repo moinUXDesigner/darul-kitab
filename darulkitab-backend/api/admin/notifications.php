@@ -17,6 +17,33 @@ $db = (new Database())->connect();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+$db->exec("
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT UNSIGNED NOT NULL,
+        endpoint TEXT NOT NULL,
+        p256dh VARCHAR(255) NOT NULL,
+        auth VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_endpoint (user_id, endpoint(255)),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+");
+
+$db->exec("
+    CREATE TABLE IF NOT EXISTS notifications (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        body TEXT,
+        url VARCHAR(500) DEFAULT '/',
+        sent_by BIGINT UNSIGNED DEFAULT NULL,
+        total_sent INT DEFAULT 0,
+        total_failed INT DEFAULT 0,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+");
+
 if ($method === 'GET') {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $limit = min(50, max(10, (int)($_GET['limit'] ?? 20)));
@@ -65,11 +92,6 @@ if ($method === 'POST') {
     $stmt = $db->query("SELECT id, endpoint, p256dh, auth FROM push_subscriptions");
     $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (empty($subscriptions)) {
-        echo json_encode(["status" => "success", "message" => "No subscribers to notify", "sent" => 0, "failed" => 0]);
-        exit;
-    }
-
     // Build payload
     $payload = json_encode([
         'title' => $title,
@@ -82,16 +104,18 @@ if ($method === 'POST') {
     $failed = 0;
     $expiredIds = [];
 
-    foreach ($subscriptions as $sub) {
-        $result = $webpush->send($sub['endpoint'], $sub['p256dh'], $sub['auth'], $payload);
+    if (!empty($subscriptions)) {
+        foreach ($subscriptions as $sub) {
+            $result = $webpush->send($sub['endpoint'], $sub['p256dh'], $sub['auth'], $payload);
 
-        if ($result['success']) {
-            $sent++;
-        } else {
-            $failed++;
-            // Remove expired/invalid subscriptions (410 Gone or 404 Not Found)
-            if (in_array($result['http_code'], [404, 410])) {
-                $expiredIds[] = $sub['id'];
+            if ($result['success']) {
+                $sent++;
+            } else {
+                $failed++;
+                // Remove expired/invalid subscriptions (410 Gone or 404 Not Found)
+                if (in_array($result['http_code'], [404, 410], true)) {
+                    $expiredIds[] = $sub['id'];
+                }
             }
         }
     }
@@ -111,9 +135,12 @@ if ($method === 'POST') {
 
     echo json_encode([
         "status" => "success",
-        "message" => "Notification sent",
+        "message" => empty($subscriptions)
+            ? "Notification saved. No push subscribers are enabled yet."
+            : "Notification sent",
         "sent" => $sent,
         "failed" => $failed,
+        "logged" => 1,
         "expired_removed" => count($expiredIds),
     ]);
     exit;

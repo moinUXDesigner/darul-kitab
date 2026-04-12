@@ -3,46 +3,111 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/jwt.php';
 
+header('Content-Type: application/json');
 
-$data = json_decode(file_get_contents('php://input'), true);
+function fetchGoogleIdentity(string $credential): ?array
+{
+    $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($credential);
+    $response = false;
 
+    if (function_exists('curl_init')) {
+        $curl = curl_init($url);
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        ]);
+        $response = curl_exec($curl);
+        curl_close($curl);
+    } else {
+        $response = @file_get_contents($url);
+    }
 
-// Normally verify token via Google API
-$email = $data['email'] ?? null;
-$name = $data['name'] ?? 'Google User';
+    if ($response === false) {
+        return null;
+    }
 
-
-if (!$email) {
-http_response_code(400);
-exit(json_encode(['message'=>'Invalid Google token']));
+    $decoded = json_decode($response, true);
+    return is_array($decoded) ? $decoded : null;
 }
 
+$data = json_decode(file_get_contents('php://input'), true) ?? [];
+$credential = trim((string)($data['credential'] ?? ''));
 
-$db = (new Database())->connect();
-$stmt = $db->prepare("SELECT * FROM users WHERE email=?");
-$stmt->execute([$email]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-
-if (!$user) {
-$stmt = $db->prepare("INSERT INTO users(user_name, email, password_hash, user_role, is_premium) VALUES(?,?,?,?,?)");
-$stmt->execute([$name, $email, 'GOOGLE_AUTH', 'user', 0]);
-$id = $db->lastInsertId();
-$isPremium = false;
-$userRole = 'user';
-} else {
-$id = $user['id'];
-$name = $user['user_name'];
-$isPremium = (bool)$user['is_premium'];
-$userRole = $user['user_role'];
+if ($credential === '') {
+    http_response_code(400);
+    echo json_encode([
+        'message' => 'Google credential is required',
+    ]);
+    exit;
 }
 
+$googleUser = fetchGoogleIdentity($credential);
 
-$token = createToken(['id'=>$id, 'email'=>$email, 'user_role'=>$userRole, 'is_premium'=>$isPremium]);
+if (!$googleUser || empty($googleUser['email']) || ($googleUser['email_verified'] ?? 'false') !== 'true') {
+    http_response_code(401);
+    echo json_encode([
+        'message' => 'Unable to verify your Google account',
+    ]);
+    exit;
+}
 
+$expectedAudience = trim((string)getenv('GOOGLE_CLIENT_ID'));
+if ($expectedAudience !== '' && ($googleUser['aud'] ?? '') !== $expectedAudience) {
+    http_response_code(401);
+    echo json_encode([
+        'message' => 'Google account audience mismatch',
+    ]);
+    exit;
+}
 
-echo json_encode([
-'token' => $token,
-'user' => ['id'=>$id, 'user_name'=>$name, 'email'=>$email, 'user_role'=>$userRole, 'is_premium'=>$isPremium]
-]);
-?>
+$email = trim((string)$googleUser['email']);
+$name = trim((string)($googleUser['name'] ?? 'Google User'));
+
+try {
+    $db = (new Database())->connect();
+
+    $stmt = $db->prepare('SELECT id, user_name, email, user_role, is_premium FROM users WHERE email = ? LIMIT 1');
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user) {
+        $insert = $db->prepare('
+            INSERT INTO users (user_name, email, password_hash, user_role, is_premium, phone)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ');
+        $insert->execute([$name, $email, 'GOOGLE_AUTH', 'user', 0, null]);
+
+        $id = (int)$db->lastInsertId();
+        $userRole = 'user';
+        $isPremium = false;
+    } else {
+        $id = (int)$user['id'];
+        $name = (string)$user['user_name'];
+        $userRole = (string)$user['user_role'];
+        $isPremium = (bool)$user['is_premium'];
+    }
+
+    $token = createToken([
+        'id' => $id,
+        'email' => $email,
+        'user_role' => $userRole,
+        'is_premium' => $isPremium,
+    ]);
+
+    echo json_encode([
+        'token' => $token,
+        'user' => [
+            'id' => $id,
+            'user_name' => $name,
+            'email' => $email,
+            'user_role' => $userRole,
+            'is_premium' => $isPremium,
+        ],
+    ]);
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode([
+        'message' => 'Google sign-in failed. Please try again.',
+    ]);
+}

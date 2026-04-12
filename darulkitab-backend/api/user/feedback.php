@@ -35,12 +35,49 @@ if (mb_strlen($query) > 2000) {
     exit;
 }
 
-$stmt = $db->prepare("INSERT INTO feedback (name, email, mobile, query) VALUES (:name, :email, :mobile, :query)");
-$stmt->execute([
-    ':name'   => $user['user_name'] ?? '',
-    ':email'  => $user['email'] ?? '',
-    ':mobile' => $user['mobile'] ?? '',
-    ':query'  => $query,
-]);
+$userId = (int)($user->id ?? 0);
+$name = trim((string)($user->user_name ?? ''));
+$email = trim((string)($user->email ?? ''));
+$mobile = preg_replace('/\D+/', '', (string)($user->mobile ?? $user->phone ?? ''));
+
+if ($userId > 0) {
+    $userStmt = $db->prepare("SELECT user_name, email, phone FROM users WHERE id = :id LIMIT 1");
+    $userStmt->execute([':id' => $userId]);
+    $dbUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($dbUser) {
+        $name = trim((string)($dbUser['user_name'] ?? $name));
+        $email = trim((string)($dbUser['email'] ?? $email));
+        $mobile = preg_replace('/\D+/', '', (string)($dbUser['phone'] ?? $mobile));
+    }
+}
+
+$mobile = mb_substr($mobile, 0, 10);
+
+if ($name === '' || $email === '') {
+    http_response_code(400);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Authenticated user details are incomplete",
+    ]);
+    exit;
+}
+
+try {
+    $stmt = $db->prepare("INSERT INTO feedback (name, email, mobile, query) VALUES (:name, :email, :mobile, :query)");
+    $stmt->execute([
+        ':name'   => $name,
+        ':email'  => $email,
+        ':mobile' => $mobile,
+        ':query'  => $query,
+    ]);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Failed to save feedback",
+    ]);
+    exit;
+}
 
 echo json_encode(["status" => "success", "message" => "Feedback submitted successfully"]);

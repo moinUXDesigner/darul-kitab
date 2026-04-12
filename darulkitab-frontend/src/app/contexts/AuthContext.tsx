@@ -26,10 +26,16 @@ interface SignupPayload {
   phone?: string;
 }
 
+interface AuthResponse {
+  token: string;
+  user: User;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   signup: (payload: SignupPayload) => Promise<void>;
   logout: () => void;
   refreshPremiumStatus: () => Promise<void>;
@@ -71,28 +77,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
+  const persistSession = ({ token, user }: AuthResponse) => {
+    setToken(token);
+    setUser(user);
+
+    localStorage.setItem("jwt_token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  };
+
   /* -------------------------------
      LOGIN
   -------------------------------- */
   const login = async (email: string, password: string) => {
     try {
-      const res = await api.post("/auth/login.php", {
+      const res = await api.post<AuthResponse>("/auth/login.php", {
         email,
         password,
       });
 
-      const { token, user } = res.data;
-
-      setToken(token);
-      setUser(user);
-
-      localStorage.setItem("jwt_token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+      persistSession(res.data);
     } catch (err: any) {
       const message =
         err?.response?.data?.message || "Login failed. Please try again.";
+      throw new Error(message);
+    }
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    try {
+      const res = await api.post<AuthResponse>("/auth/google-login.php", {
+        credential,
+      });
+
+      persistSession(res.data);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Google sign-in failed. Please try again.";
       throw new Error(message);
     }
   };
@@ -102,23 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   -------------------------------- */
   const signup = async (payload: SignupPayload) => {
     try {
-         console.log("SIGNUP PAYLOAD (AuthContext):", payload);
-      const res = await api.post("/auth/signup.php", {
+      const res = await api.post<AuthResponse>("/auth/signup.php", {
         user_name: payload.user_name,
         email: payload.email,
         password: payload.password,
         phone: payload.phone ?? null,
       });
 
-      const { token, user } = res.data;
-
-      setToken(token);
-      setUser(user);
-
-      localStorage.setItem("jwt_token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+      persistSession(res.data);
     } catch (err: any) {
       const message =
         err?.response?.data?.message || "Signup failed. Please try again.";
@@ -176,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         token,
         login,
+        loginWithGoogle,
         signup,
         logout,
         refreshPremiumStatus,

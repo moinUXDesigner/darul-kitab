@@ -119,6 +119,7 @@ try {
         "favorites_count" => $favoritesCount,
         "level" => $currentLevel,
         "next_level" => $nextLevel,
+        "levels" => $levels,
         "surah_progress" => $surahData,
     ]);
 

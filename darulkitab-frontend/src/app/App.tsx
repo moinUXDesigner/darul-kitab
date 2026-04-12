@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
-import { LoginPage } from './components/LoginPage';
-import { SignupPage } from './components/SignupPage';
+import { AuthLoginPage as LoginPage } from './components/AuthLoginPage';
+import { AuthSignupPage as SignupPage } from './components/AuthSignupPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { HomePage } from './components/HomePage';
@@ -12,7 +12,9 @@ import { SurahDetailPage } from './components/SurahDetailPage';
 import { LibraryPage } from './components/LibraryPage';
 import { FavoritesPage } from './components/FavoritesPage';
 import { SubscriptionPage } from './components/SubscriptionPage';
+import { NotificationsPage } from './components/NotificationsPage';
 import { SettingsPage } from './components/SettingsPage';
+import { ChangePasswordPage } from './components/ChangePasswordPage';
 import { MiniPlayer } from './components/MiniPlayer';
 import { FullPlayer } from './components/FullPlayer';
 import { BottomNav } from './components/BottomNav';
@@ -162,7 +164,9 @@ function AppContent() {
           {currentPage === 'library' && <LibraryPage onNavigate={handleNavigate} />}
           {currentPage === 'favorites' && <FavoritesPage onNavigate={handleNavigate} />}
           {currentPage === 'subscription' && <SubscriptionPage onNavigate={handleNavigate} />}
+          {currentPage === 'notifications' && <NotificationsPage onNavigate={handleNavigate} />}
           {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
+          {currentPage === 'change-password' && <ChangePasswordPage onNavigate={handleNavigate} />}
           {/* Admin Pages (only rendered for admin role) */}
           {isAdmin && currentPage === 'admin' && <AdminDashboardPage onNavigate={handleNavigate} />}
           {isAdmin && currentPage === 'admin-users' && <AdminUsersPage onNavigate={handleNavigate} />}

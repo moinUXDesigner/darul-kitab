@@ -2,14 +2,22 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import api from '../api/axios';
-import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X, ExternalLink, FileText, Mail } from 'lucide-react';
+import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X, ExternalLink, FileText, Mail, Lock } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { user, logout, isPremium, isAdmin } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [audioQuality, setAudioQuality] = useState(isPremium ? 'high' : 'standard');
   const [language, setLanguage] = useState('english');
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, loading: pushLoading, toggle: togglePush, permission: pushPermission } = usePushNotifications();
+  const {
+    isSupported: pushSupported,
+    isSubscribed: pushSubscribed,
+    loading: pushLoading,
+    toggle: togglePush,
+    permission: pushPermission,
+    statusMessage: pushStatusMessage,
+    supportHint: pushSupportHint,
+  } = usePushNotifications();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -21,6 +29,20 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
     { label: 'Cancellation & Refund', href: '/cancellation-and-refund.html', icon: FileText },
     { label: 'Shipping & Exchange', href: '/shipping-and-exchange.html', icon: FileText },
     { label: 'Contact Us', href: '/contact-us.html', icon: Mail },
+  ];
+  const membershipCards = [
+    {
+      title: 'Free',
+      active: !isPremium,
+      accentClass: 'border-border bg-background',
+      items: ['3 reciters', 'Streaming only', 'Standard audio', 'Ads supported'],
+    },
+    {
+      title: 'Premium',
+      active: isPremium,
+      accentClass: 'border-accent/30 bg-accent/10',
+      items: ['All reciters unlocked', 'Offline downloads', '320kbps audio', 'No ads'],
+    },
   ];
 
   const handleSubmitFeedback = async () => {
@@ -109,6 +131,13 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
             <User className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">Edit Profile</span>
           </button>
+          <button
+            onClick={() => onNavigate('change-password')}
+            className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b border-border"
+          >
+            <Lock className="w-5 h-5 text-primary" />
+            <span className="flex-1 text-left">Change Password</span>
+          </button>
           <button className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors">
             <Shield className="w-5 h-5 text-primary" />
             <span className="flex-1 text-left">Privacy & Security</span>
@@ -116,46 +145,121 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
         </div>
       </section>
 
-      {/* Push Notifications */}
-      {pushSupported && (
-        <section className="mb-6">
-          <h3 className="text-lg mb-3">Notifications</h3>
-          <div className="bg-card p-4 rounded-2xl border border-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-primary" />
-                <div>
-                  <span>Push Notifications</span>
-                  <p className="text-xs text-muted-foreground">
-                    {pushPermission === 'denied'
-                      ? 'Blocked in browser settings'
-                      : pushSubscribed
-                        ? 'Receiving notifications'
-                        : 'Get updates about new content'}
-                  </p>
+      <section className="mb-6">
+        <h3 className="text-lg mb-3">Membership Snapshot</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {membershipCards.map((card) => (
+            <div
+              key={card.title}
+              className={`rounded-2xl border p-5 ${card.accentClass}`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  {card.title === 'Premium' ? (
+                    <Crown className="w-5 h-5 text-accent" />
+                  ) : (
+                    <User className="w-5 h-5 text-primary" />
+                  )}
+                  <span>{card.title}</span>
                 </div>
-              </div>
-              <button
-                onClick={togglePush}
-                disabled={pushLoading || pushPermission === 'denied'}
-                className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${
-                  pushSubscribed ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                {pushLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin absolute top-1 left-4" />
-                ) : (
-                  <div
-                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                      pushSubscribed ? 'translate-x-6' : 'translate-x-0.5'
-                    }`}
-                  />
+                {card.active && (
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                    Current
+                  </span>
                 )}
-              </button>
+              </div>
+              <div className="space-y-3">
+                {card.items.map((item) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Push Notifications */}
+      <section className="mb-6">
+        <h3 className="text-lg mb-3">Notifications</h3>
+        <div className="bg-card p-5 rounded-2xl border border-border space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl ${pushSubscribed ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>Allow Push Notifications</span>
+                  {pushSubscribed && (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
+                      Enabled
+                    </span>
+                  )}
+                  {!pushSupported && (
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                      Unsupported here
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {pushStatusMessage}
+                </p>
+                {!!pushSupportHint && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {pushSupportHint}
+                  </p>
+                )}
+                {pushPermission === 'denied' && (
+                  <p className="mt-2 text-xs text-amber-600">
+                    Notifications were blocked by the browser. Re-enable them in site settings to receive admin alerts.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={togglePush}
+              disabled={pushLoading || !pushSupported || pushPermission === 'denied'}
+              className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                pushSubscribed ? 'bg-primary' : 'bg-muted'
+              }`}
+              aria-label={pushSubscribed ? 'Disable push notifications' : 'Enable push notifications'}
+            >
+              {pushLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin absolute top-1 left-4" />
+              ) : (
+                <div
+                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                    pushSubscribed ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              )}
+            </button>
           </div>
-        </section>
-      )}
+
+          <div className="rounded-2xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+            New recitations, premium updates, and admin announcements will appear in your notifications inbox even if push is turned off.
+          </div>
+
+          {!pushSupported && (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-700">
+              Push opt-in is unavailable on this page because the browser only allows it on secure origins such as your live HTTPS domain.
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onNavigate('notifications')}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <Bell className="w-4 h-4" />
+            Open Notifications Page
+          </button>
+        </div>
+      </section>
 
       {/* Appearance */}
       <section className="mb-6">

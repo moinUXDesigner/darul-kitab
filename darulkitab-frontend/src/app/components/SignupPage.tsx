@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
+import { AuthSignupPage } from './AuthSignupPage';
 
 export function SignupPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+  return <AuthSignupPage onNavigate={onNavigate} />;
+
   const { signup } = useAuth();
 
   const [userName, setUserName] = useState('');
