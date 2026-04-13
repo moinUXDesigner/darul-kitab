@@ -10,6 +10,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -19,6 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $user = authGuard();
 $db = (new Database())->connect();
+
+$feedbackColumns = $db->query("SHOW COLUMNS FROM feedback")->fetchAll(PDO::FETCH_COLUMN);
+if (!in_array('created_at', $feedbackColumns, true)) {
+    $db->exec("ALTER TABLE feedback ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+}
 
 $data = json_decode(file_get_contents('php://input'), true);
 $query = trim($data['query'] ?? '');
@@ -70,6 +76,25 @@ try {
         ':email'  => $email,
         ':mobile' => $mobile,
         ':query'  => $query,
+    ]);
+
+    $feedbackId = (string)$db->lastInsertId();
+
+    logAnalyticsEvent($db, [
+        'user_id' => $userId > 0 ? $userId : null,
+        'event_type' => 'feedback_submitted',
+        'metadata' => [
+            'feedback_id' => $feedbackId,
+        ],
+    ]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => $userId > 0 ? $userId : null,
+        'actor_role' => (string)($user->user_role ?? 'user'),
+        'action' => 'feedback_submitted',
+        'entity_type' => 'feedback',
+        'entity_id' => $feedbackId,
+        'description' => 'User submitted feedback',
     ]);
 } catch (Throwable $e) {
     http_response_code(500);

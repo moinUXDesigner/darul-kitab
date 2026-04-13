@@ -11,6 +11,7 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/vapid.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $user = adminGuard();
 $db = (new Database())->connect();
@@ -132,6 +133,21 @@ if ($method === 'POST') {
         VALUES (?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([$title, $body, $url, $user->id, $sent, $failed]);
+    $notificationId = (string)$db->lastInsertId();
+
+    logAuditTrail($db, [
+        'actor_user_id' => (int)$user->id,
+        'actor_role' => (string)($user->user_role ?? 'admin'),
+        'action' => 'notification_sent',
+        'entity_type' => 'notification',
+        'entity_id' => $notificationId,
+        'description' => 'Admin sent a new notification',
+        'metadata' => [
+            'title' => $title,
+            'sent' => $sent,
+            'failed' => $failed,
+        ],
+    ]);
 
     echo json_encode([
         "status" => "success",

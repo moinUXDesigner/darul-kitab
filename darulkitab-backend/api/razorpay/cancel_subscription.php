@@ -13,6 +13,7 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/razorpay.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $user = authGuard();
 $data = json_decode(file_get_contents('php://input'), true);
@@ -66,6 +67,29 @@ if (!$cancelAtCycleEnd) {
     $stmt = $db->prepare("UPDATE users SET is_premium = 0 WHERE id = ?");
     $stmt->execute([$user->id]);
 }
+
+logAnalyticsEvent($db, [
+    'user_id' => (int)$user->id,
+    'event_type' => 'subscription_cancelled',
+    'metadata' => [
+        'subscription_id' => $subscriptionId,
+        'cancel_at_cycle_end' => (bool)$cancelAtCycleEnd,
+    ],
+]);
+
+logAuditTrail($db, [
+    'actor_user_id' => (int)$user->id,
+    'actor_role' => (string)($user->user_role ?? 'user'),
+    'action' => 'subscription_cancelled',
+    'entity_type' => 'subscription',
+    'entity_id' => $subscriptionId,
+    'description' => $cancelAtCycleEnd
+        ? 'User scheduled subscription cancellation at cycle end'
+        : 'User cancelled subscription immediately',
+    'metadata' => [
+        'cancel_at_cycle_end' => (bool)$cancelAtCycleEnd,
+    ],
+]);
 
 echo json_encode([
     "status" => "success",

@@ -9,6 +9,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $user = authGuard();
 $db = (new Database())->connect();
@@ -43,5 +44,19 @@ $stmt = $db->prepare("
     ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth), created_at = CURRENT_TIMESTAMP
 ");
 $stmt->execute([$user->id, $endpoint, $p256dh, $auth]);
+
+logAnalyticsEvent($db, [
+    'user_id' => (int)$user->id,
+    'event_type' => 'push_enabled',
+]);
+
+logAuditTrail($db, [
+    'actor_user_id' => (int)$user->id,
+    'actor_role' => (string)($user->user_role ?? 'user'),
+    'action' => 'push_enabled',
+    'entity_type' => 'notification_preference',
+    'entity_id' => (string)$user->id,
+    'description' => 'User enabled push notifications',
+]);
 
 echo json_encode(["status" => "success", "message" => "Push subscription saved"]);

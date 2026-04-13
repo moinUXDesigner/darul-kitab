@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/jwt.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 // ================================
 // READ JSON INPUT
@@ -48,6 +49,26 @@ try {
         echo json_encode(["message" => "Invalid credentials"]);
         exit;
     }
+
+    logAnalyticsEvent($db, [
+        'user_id' => (int)$user['id'],
+        'event_type' => 'login',
+        'metadata' => [
+            'method' => 'password',
+        ],
+    ]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => (int)$user['id'],
+        'actor_role' => (string)$user['user_role'],
+        'action' => 'login',
+        'entity_type' => 'user',
+        'entity_id' => (string)$user['id'],
+        'description' => 'User signed in with email and password',
+        'metadata' => [
+            'email' => (string)$user['email'],
+        ],
+    ]);
 
     // ================================
     // CREATE JWT

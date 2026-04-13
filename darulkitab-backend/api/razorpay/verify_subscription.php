@@ -13,6 +13,7 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/razorpay.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $user = authGuard();
 $data = json_decode(file_get_contents('php://input'), true);
@@ -62,6 +63,27 @@ if ($razorpayStatus === 'active') {
         ");
         $stmt->execute([$paymentId, $subscriptionId, $user->id]);
     }
+
+    logAnalyticsEvent($db, [
+        'user_id' => (int)$user->id,
+        'event_type' => 'subscription_activated',
+        'metadata' => [
+            'subscription_id' => $subscriptionId,
+            'payment_id' => $paymentId,
+        ],
+    ]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => (int)$user->id,
+        'actor_role' => (string)($user->user_role ?? 'user'),
+        'action' => 'subscription_activated',
+        'entity_type' => 'subscription',
+        'entity_id' => $subscriptionId,
+        'description' => 'Subscription verified and activated',
+        'metadata' => [
+            'payment_id' => $paymentId,
+        ],
+    ]);
 
     echo json_encode([
         "status" => "success",

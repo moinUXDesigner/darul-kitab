@@ -13,6 +13,7 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/razorpay.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 header('Content-Type: application/json');
 
@@ -121,6 +122,29 @@ $stmt = $db->prepare("
     VALUES (?, ?, 'razorpay', ?, ?, 'INR', 'created')
 ");
 $stmt->execute([$user->id, $planId, $subscriptionId, $plan['price']]);
+
+logAnalyticsEvent($db, [
+    'user_id' => (int)$user->id,
+    'event_type' => 'subscription_started',
+    'metadata' => [
+        'plan_id' => $planId,
+        'subscription_id' => $subscriptionId,
+        'amount' => (float)$plan['price'],
+    ],
+]);
+
+logAuditTrail($db, [
+    'actor_user_id' => (int)$user->id,
+    'actor_role' => (string)($user->user_role ?? 'user'),
+    'action' => 'subscription_started',
+    'entity_type' => 'subscription',
+    'entity_id' => $subscriptionId,
+    'description' => 'User started a Razorpay subscription flow',
+    'metadata' => [
+        'plan_id' => $planId,
+        'amount' => (float)$plan['price'],
+    ],
+]);
 
 echo json_encode([
     "status" => "success",

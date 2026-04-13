@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/jwt.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -84,6 +85,26 @@ try {
     ]);
 
     $userId = $db->lastInsertId();
+
+    logAnalyticsEvent($db, [
+        'user_id' => (int)$userId,
+        'event_type' => 'signup',
+        'metadata' => [
+            'method' => 'email',
+        ],
+    ]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => (int)$userId,
+        'actor_role' => 'user',
+        'action' => 'signup',
+        'entity_type' => 'user',
+        'entity_id' => (string)$userId,
+        'description' => 'New user account created',
+        'metadata' => [
+            'email' => $email,
+        ],
+    ]);
 
     // Create JWT
     $token = createToken([

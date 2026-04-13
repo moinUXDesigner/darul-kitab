@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/jwt.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 header('Content-Type: application/json');
 
@@ -71,6 +72,8 @@ try {
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    $isNewUser = false;
+
     if (!$user) {
         $insert = $db->prepare('
             INSERT INTO users (user_name, email, password_hash, user_role, is_premium, phone)
@@ -81,12 +84,34 @@ try {
         $id = (int)$db->lastInsertId();
         $userRole = 'user';
         $isPremium = false;
+        $isNewUser = true;
     } else {
         $id = (int)$user['id'];
         $name = (string)$user['user_name'];
         $userRole = (string)$user['user_role'];
         $isPremium = (bool)$user['is_premium'];
     }
+
+    logAnalyticsEvent($db, [
+        'user_id' => $id,
+        'event_type' => $isNewUser ? 'signup' : 'login',
+        'metadata' => [
+            'method' => 'google',
+            'is_new_user' => $isNewUser,
+        ],
+    ]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => $id,
+        'actor_role' => $userRole,
+        'action' => $isNewUser ? 'google_signup' : 'google_login',
+        'entity_type' => 'user',
+        'entity_id' => (string)$id,
+        'description' => $isNewUser ? 'New user account created via Google sign-in' : 'User signed in with Google',
+        'metadata' => [
+            'email' => $email,
+        ],
+    ]);
 
     $token = createToken([
         'id' => $id,

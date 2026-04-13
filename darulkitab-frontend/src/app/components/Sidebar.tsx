@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut } from 'lucide-react';
+import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut, BarChart3, ScrollText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationsSummary } from '../hooks/useNotifications';
 
@@ -31,6 +31,8 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
     { id: 'admin-feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'admin-settlements', label: 'Payouts', icon: IndianRupee },
     { id: 'admin-notifications', label: 'Alerts', icon: Bell },
+    { id: 'admin-metrics', label: 'Metrics', icon: BarChart3 },
+    { id: 'admin-audit-trails', label: 'Audit Trails', icon: ScrollText },
   ];
 
   return (

@@ -56,6 +56,7 @@ const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(und
 
 const SAVE_INTERVAL_MS = 15_000; // auto-save every 15 seconds
 const PROGRESS_UPDATED_EVENT = 'darulkitab-progress-updated';
+const PLAYBACK_SESSION_STORAGE_KEY = 'darulkitab_playback_session_id';
 
 function emitProgressUpdated(detail?: Record<string, unknown>) {
   if (typeof window !== 'undefined') {
@@ -68,12 +69,26 @@ function requiresPremiumAccess(ayah: AyahData | null | undefined): boolean {
   return ayah.isPremium === true || (typeof ayah.surahNumber === 'number' && ayah.surahNumber !== 1);
 }
 
+function getPlaybackSessionId() {
+  if (typeof window === 'undefined') return '';
+
+  const existingSessionId = window.sessionStorage.getItem(PLAYBACK_SESSION_STORAGE_KEY);
+  if (existingSessionId) {
+    return existingSessionId;
+  }
+
+  const nextSessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  window.sessionStorage.setItem(PLAYBACK_SESSION_STORAGE_KEY, nextSessionId);
+  return nextSessionId;
+}
+
 async function saveProgressToServer(audioId: string | number, position: number, dur: number) {
   try {
     await api.post('/user/save-progress.php', {
       audio_id: Number(audioId),
       position_seconds: position,
       duration_seconds: dur,
+      session_id: getPlaybackSessionId(),
     });
     emitProgressUpdated({
       audioId: Number(audioId),
@@ -194,6 +209,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         audio_id: Number(targetId),
         duration_seconds: effectiveDuration,
         mark_complete: true,
+        session_id: getPlaybackSessionId(),
       });
 
       if (isCurrentTrack && audio) {
@@ -230,6 +246,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         audio_id: Number(targetId),
         duration_seconds: effectiveDuration,
         reset: true,
+        session_id: getPlaybackSessionId(),
       });
 
       if (isCurrentTrack && audio) {

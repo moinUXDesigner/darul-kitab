@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
 import {
   Users, Crown, CreditCard, MessageSquare, TrendingUp,
-  UserCheck, UserX, AlertTriangle, IndianRupee, ArrowRight, Bell
+  UserCheck, UserX, AlertTriangle, IndianRupee, ArrowRight, Bell, BarChart3, ShieldCheck
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -120,6 +120,20 @@ export function AdminDashboardPage({ onNavigate }: { onNavigate: (page: string) 
           >
             <Bell className="w-5 h-5 text-primary" />
             <span>Send Notifications</span>
+          </button>
+          <button
+            onClick={() => onNavigate('admin-metrics')}
+            className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border hover:border-primary/30 transition-all"
+          >
+            <BarChart3 className="w-5 h-5 text-primary" />
+            <span>View Success Metrics</span>
+          </button>
+          <button
+            onClick={() => onNavigate('admin-audit-trails')}
+            className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border hover:border-primary/30 transition-all"
+          >
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            <span>Open Audit Trails</span>
           </button>
         </div>
       </div>

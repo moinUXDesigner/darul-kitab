@@ -28,6 +28,8 @@ import { AdminPlansPage } from './components/AdminPlansPage';
 import { AdminFeedbackPage } from './components/AdminFeedbackPage';
 import { AdminSettlementsPage } from './components/AdminSettlementsPage';
 import { AdminNotificationsPage } from './components/AdminNotificationsPage';
+import { AdminSuccessMetricsPage } from './components/AdminSuccessMetricsPage';
+import { AdminAuditTrailsPage } from './components/AdminAuditTrailsPage';
 import { useTheme } from './hooks/useTheme';
 
 function clearAuthQueryParams() {
@@ -174,6 +176,8 @@ function AppContent() {
           {isAdmin && currentPage === 'admin-feedback' && <AdminFeedbackPage onNavigate={handleNavigate} />}
           {isAdmin && currentPage === 'admin-settlements' && <AdminSettlementsPage onNavigate={handleNavigate} />}
           {isAdmin && currentPage === 'admin-notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-metrics' && <AdminSuccessMetricsPage onNavigate={handleNavigate} />}
+          {isAdmin && currentPage === 'admin-audit-trails' && <AdminAuditTrailsPage onNavigate={handleNavigate} />}
         </div>
 
         {/* Mobile Bottom Navigation */}

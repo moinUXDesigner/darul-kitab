@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 header('Content-Type: application/json');
 
@@ -75,6 +76,15 @@ try {
 
     $update = $db->prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
     $update->execute([$newHash, $userId]);
+
+    logAuditTrail($db, [
+        'actor_user_id' => $userId,
+        'actor_role' => (string)($user->user_role ?? 'user'),
+        'action' => 'password_changed',
+        'entity_type' => 'user',
+        'entity_id' => (string)$userId,
+        'description' => 'User changed account password',
+    ]);
 
     echo json_encode([
         'message' => $isGoogleOnlyAccount

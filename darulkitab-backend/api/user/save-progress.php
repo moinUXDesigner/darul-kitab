@@ -3,6 +3,7 @@ require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/schema-fix.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -17,6 +18,7 @@ $positionSeconds = isset($data['position_seconds']) ? (float)$data['position_sec
 $durationSeconds = isset($data['duration_seconds']) ? (float)$data['duration_seconds'] : 0;
 $markComplete    = isset($data['mark_complete']) ? (bool)$data['mark_complete'] : false;
 $resetProgress   = isset($data['reset']) ? (bool)$data['reset'] : false;
+$sessionId       = trim((string)($data['session_id'] ?? ''));
 
 if ($audioId <= 0) {
     http_response_code(400);
@@ -37,6 +39,11 @@ try {
         http_response_code(404);
         exit(json_encode(["message" => "Audio not found"]));
     }
+
+    $existingStmt = $db->prepare("SELECT position_seconds, completed FROM listening_progress WHERE user_id = ? AND audio_id = ? LIMIT 1");
+    $existingStmt->execute([$user->id, $audioId]);
+    $existingProgress = $existingStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    $previousPosition = isset($existingProgress['position_seconds']) ? (float)$existingProgress['position_seconds'] : 0;
 
     // Explicit mark-complete or reset overrides auto-detection
     if ($resetProgress) {
@@ -68,6 +75,31 @@ try {
         round($positionSeconds, 2),
         round($durationSeconds, 2),
         $completed
+    ]);
+
+    $deltaSeconds = 0.0;
+    if ($resetProgress) {
+        $deltaSeconds = 0.0;
+    } elseif ($markComplete) {
+        $referenceDuration = $durationSeconds > 0 ? $durationSeconds : $previousPosition;
+        $deltaSeconds = max(0, $referenceDuration - $previousPosition);
+    } else {
+        $deltaSeconds = max(0, $positionSeconds - $previousPosition);
+    }
+
+    logAnalyticsEvent($db, [
+        'user_id' => (int)$user->id,
+        'event_type' => $resetProgress ? 'playback_reset' : ($completed ? 'track_completed' : 'playback_progress'),
+        'session_id' => $sessionId !== '' ? $sessionId : null,
+        'audio_id' => $audioId,
+        'surah_no' => (int)$audio['surah_no'],
+        'value_seconds' => round($deltaSeconds, 2),
+        'metadata' => [
+            'position_seconds' => round($positionSeconds, 2),
+            'duration_seconds' => round($durationSeconds, 2),
+            'mark_complete' => $markComplete,
+            'reset' => $resetProgress,
+        ],
     ]);
 
     echo json_encode([

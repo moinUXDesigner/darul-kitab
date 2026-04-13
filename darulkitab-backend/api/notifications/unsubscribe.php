@@ -9,6 +9,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../lib/telemetry.php';
 
 $user = authGuard();
 $db = (new Database())->connect();
@@ -36,5 +37,19 @@ if (!$endpoint) {
 
 $stmt = $db->prepare("DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?");
 $stmt->execute([$user->id, $endpoint]);
+
+logAnalyticsEvent($db, [
+    'user_id' => (int)$user->id,
+    'event_type' => 'push_disabled',
+]);
+
+logAuditTrail($db, [
+    'actor_user_id' => (int)$user->id,
+    'actor_role' => (string)($user->user_role ?? 'user'),
+    'action' => 'push_disabled',
+    'entity_type' => 'notification_preference',
+    'entity_id' => (string)$user->id,
+    'description' => 'User disabled push notifications',
+]);
 
 echo json_encode(["status" => "success", "message" => "Push subscription removed"]);
