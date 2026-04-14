@@ -1,7 +1,8 @@
 import React from 'react';
-import { Home, Search, Library, Crown, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut, BarChart3, ScrollText } from 'lucide-react';
+import { Home, Search, Library, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut, BarChart3, ScrollText, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationsSummary } from '../hooks/useNotifications';
+import { useLibraryFeature } from '../hooks/useLibraryFeature';
 
 interface SidebarProps {
   activePage: string;
@@ -10,17 +11,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
-  const { isPremium, isAdmin, logout } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const { unreadCount } = useNotificationsSummary();
+  const { isLibraryEnabled } = useLibraryFeature();
   const logoSrc = `${import.meta.env.BASE_URL}Logo.png`;
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'profile', label: 'Profile', icon: User },
     { id: 'surah-list', label: 'Surahs', icon: BookOpen },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'library', label: 'Saved', icon: Library },
-    { id: 'subscription', label: 'Premium', icon: Crown },
+    ...(isLibraryEnabled ? [{ id: 'library', label: 'Saved', icon: Library }] : []),
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
@@ -42,24 +44,24 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
       }`}
     >
       {/* Logo */}
-      <div className={`border-b border-sidebar-border ${isCollapsed ? 'px-3 py-4' : 'p-6'}`}>
+      <div className={`border-b border-sidebar-border ${isCollapsed ? 'px-3 py-4' : 'p-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           {/* <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <span className="text-xl text-primary-foreground">د</span>
           </div> */}
 
-          <div className="rounded-xl bg-primary flex items-center justify-center">
+          <div className="">
             <img
               src={logoSrc}
               alt="Quran Fahmi Logo"
-              className={`${isCollapsed ? 'w-14 h-14' : 'w-30 h-30'} object-cover`}
+              className={`${isCollapsed ? 'w-12 h-12' : 'w-20 h-20'} object-cover`}
             />
           </div>
 
           {!isCollapsed && (
-            <div>
+            <div className=''>
               <h2 className="text-lg">Quran Fahmi</h2>
-              <p className="text-xs text-sidebar-foreground/60">Audio</p>
+              {/* <p className="text-xs text-sidebar-foreground/60">Audio</p> */}
             </div>
           )}
         </div>
@@ -101,11 +103,6 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
                   {!isCollapsed && item.id === 'notifications' && unreadCount > 0 && (
                     <span className="ml-auto min-w-6 rounded-full bg-primary px-2 py-0.5 text-center text-[11px] font-semibold text-primary-foreground">
                       {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                  {!isCollapsed && item.id === 'subscription' && isPremium && (
-                    <span className="ml-auto text-[11px] px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold">
-                      Pro
                     </span>
                   )}
                 </button>
@@ -162,25 +159,6 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
           </>
         )}
       </nav>
-
-      {/* Premium Banner */}
-      {!isPremium && !isCollapsed && (
-        <div className="p-4 m-4 rounded-3xl bg-gradient-to-br from-accent/20 via-accent/10 to-transparent border border-accent/25 shadow-sm">
-          <div className="w-10 h-10 rounded-2xl bg-accent/15 text-accent flex items-center justify-center mb-3">
-            <Crown className="w-5 h-5" />
-          </div>
-          <h3 className="text-sm mb-1.5">Go Premium</h3>
-          <p className="text-xs leading-5 text-muted-foreground mb-3">
-            Unlock all reciters and offline downloads
-          </p>
-          <button
-            onClick={() => onNavigate('subscription')}
-            className="w-full py-2.5 bg-accent text-accent-foreground rounded-xl hover:bg-accent/90 transition-colors text-sm font-medium"
-          >
-            View Premium
-          </button>
-        </div>
-      )}
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">

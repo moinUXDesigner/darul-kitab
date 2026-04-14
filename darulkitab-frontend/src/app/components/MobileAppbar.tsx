@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Menu, Sun, Moon, Settings, X, Library, MessageSquare, Home, Search, BookOpen, Bell } from 'lucide-react';
+import { Sun, Moon, Settings, X, Library, MessageSquare, Home, Search, BookOpen, Bell, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedbackDialog } from './FeedbackDialog';
 import { useNotificationsSummary } from '../hooks/useNotifications';
+import { useLibraryFeature } from '../hooks/useLibraryFeature';
 
 interface MobileAppbarProps {
   theme: 'light' | 'dark';
@@ -16,25 +17,31 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { unreadCount } = useNotificationsSummary();
+  const { isLibraryEnabled } = useLibraryFeature();
+  const logoSrc = `${import.meta.env.BASE_URL}Logo.png`;
 
   const drawerItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'profile', label: 'Profile', icon: User },
     { id: 'surah-list', label: 'All Suras', icon: BookOpen },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'library', label: 'Library', icon: Library },
+    ...(isLibraryEnabled ? [{ id: 'library', label: 'Library', icon: Library }] : []),
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
     <>
       <header className="flex md:hidden items-center justify-between h-14 px-4 border-b border-border bg-card sticky top-0 z-30">
-        {/* Hamburger */}
-        <button onClick={() => setMenuOpen(true)} className="p-2 -ml-2 rounded-xl hover:bg-muted transition-colors">
-          <Menu className="w-5 h-5" />
-        </button>
+        <div className="flex min-w-0 items-center gap-2">
+          <img
+            src={logoSrc}
+            alt="Quran Fahmi Logo"
+            className="h-9 w-9 rounded-xl object-cover"
+          />
+          <span className="truncate text-sm font-medium text-foreground">Quran Fahmi</span>
+        </div>
 
-        {/* Right section */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate('notifications')}
@@ -68,8 +75,9 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
 
           {/* Profile avatar */}
           <button
-            onClick={() => onNavigate('settings')}
+            onClick={() => setMenuOpen(true)}
             className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium"
+            aria-label="Open sidebar"
           >
             {initials}
           </button>
@@ -77,15 +85,28 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
       </header>
 
       {/* Mobile slide-out menu */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+      <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
+          <div
+            className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ease-out ${
+              menuOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={() => setMenuOpen(false)}
+          />
           {/* Drawer */}
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-card border-r border-border p-4 flex flex-col">
+          <aside
+            className={`absolute left-0 top-0 bottom-0 flex w-72 flex-col border-r border-border bg-card p-4 shadow-xl transition-transform duration-300 ease-out ${
+              menuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+                <img
+                  src={logoSrc}
+                  alt="Quran Fahmi Logo"
+                  className="h-9 w-9 rounded-xl object-cover"
+                />
+                <div className="hidden w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
                   <span className="text-lg text-primary-foreground">د</span>
                 </div>
                 <span className="font-medium">Quran Fahmi</span>
@@ -116,8 +137,6 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
             </div>
           </aside>
         </div>
-      )}
-
       <FeedbackDialog isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );

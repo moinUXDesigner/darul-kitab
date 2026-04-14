@@ -13,6 +13,7 @@ import { LibraryPage } from './components/LibraryPage';
 import { FavoritesPage } from './components/FavoritesPage';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { NotificationsPage } from './components/NotificationsPage';
+import { ProfilePage } from './components/ProfilePage';
 import { SettingsPage } from './components/SettingsPage';
 import { ChangePasswordPage } from './components/ChangePasswordPage';
 import { MiniPlayer } from './components/MiniPlayer';
@@ -30,6 +31,7 @@ import { AdminSettlementsPage } from './components/AdminSettlementsPage';
 import { AdminNotificationsPage } from './components/AdminNotificationsPage';
 import { AdminSuccessMetricsPage } from './components/AdminSuccessMetricsPage';
 import { AdminAuditTrailsPage } from './components/AdminAuditTrailsPage';
+import { useLibraryFeature } from './hooks/useLibraryFeature';
 import { useTheme } from './hooks/useTheme';
 
 function clearAuthQueryParams() {
@@ -81,6 +83,7 @@ function getInitialPage() {
 function AppContent() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isLibraryEnabled } = useLibraryFeature();
   const [currentPage, setCurrentPage] = useState<string>(getInitialPage);
   const [pageData, setPageData] = useState<any>(null);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState<boolean>(() => {
@@ -91,6 +94,12 @@ function AppContent() {
   console.log("Window Height:", window.innerHeight);
 
   const handleNavigate = (page: string, data?: any) => {
+    if (page === 'library' && !isLibraryEnabled) {
+      setCurrentPage('home');
+      setPageData(null);
+      window.scrollTo(0, 0);
+      return;
+    }
     if (page !== 'reset-password') {
       clearAuthQueryParams();
     }
@@ -117,6 +126,13 @@ function AppContent() {
   React.useEffect(() => {
     localStorage.setItem('desktop_sidebar_collapsed', String(isDesktopSidebarCollapsed));
   }, [isDesktopSidebarCollapsed]);
+
+  React.useEffect(() => {
+    if (currentPage === 'library' && !isLibraryEnabled) {
+      setCurrentPage('home');
+      setPageData(null);
+    }
+  }, [currentPage, isLibraryEnabled]);
 
   // Auth Pages
   if (!isAuthenticated) {
@@ -163,10 +179,11 @@ function AppContent() {
           {currentPage === 'surah-detail' && pageData && (
             <SurahDetailPage surah={pageData} onNavigate={handleNavigate} />
           )}
-          {currentPage === 'library' && <LibraryPage onNavigate={handleNavigate} />}
+          {currentPage === 'library' && isLibraryEnabled && <LibraryPage onNavigate={handleNavigate} />}
           {currentPage === 'favorites' && <FavoritesPage onNavigate={handleNavigate} />}
           {currentPage === 'subscription' && <SubscriptionPage onNavigate={handleNavigate} />}
           {currentPage === 'notifications' && <NotificationsPage onNavigate={handleNavigate} />}
+          {currentPage === 'profile' && <ProfilePage onNavigate={handleNavigate} />}
           {currentPage === 'settings' && <SettingsPage onNavigate={handleNavigate} />}
           {currentPage === 'change-password' && <ChangePasswordPage onNavigate={handleNavigate} />}
           {/* Admin Pages (only rendered for admin role) */}

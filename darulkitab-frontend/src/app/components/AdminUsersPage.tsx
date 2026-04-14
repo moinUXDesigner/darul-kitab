@@ -73,8 +73,8 @@ export function AdminUsersPage({ onNavigate }: { onNavigate: (page: string) => v
   return (
     <div className="pb-32 md:pb-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => onNavigate('admin')} className="p-2 hover:bg-muted rounded-xl transition-colors">
+      <div className="mb-6 flex items-start gap-3">
+        <button onClick={() => onNavigate('admin')} className="rounded-xl p-2 transition-colors hover:bg-muted">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
@@ -84,21 +84,23 @@ export function AdminUsersPage({ onNavigate }: { onNavigate: (page: string) => v
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {FILTER_OPTIONS.map(opt => (
-          <button
-            key={opt.id}
-            onClick={() => handleFilterChange(opt.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors ${
-              filter === opt.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border border-border hover:bg-muted'
-            }`}
-          >
-            <opt.icon className={`w-4 h-4 ${filter === opt.id ? '' : opt.color}`} />
-            {opt.label}
-          </button>
-        ))}
+      <div className="mb-4 overflow-x-auto pb-1">
+        <div className="flex min-w-max gap-2">
+          {FILTER_OPTIONS.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => handleFilterChange(opt.id)}
+              className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors ${
+                filter === opt.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card border border-border hover:bg-muted'
+              }`}
+            >
+              <opt.icon className={`w-4 h-4 ${filter === opt.id ? '' : opt.color}`} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Expiring Days Filter */}
@@ -121,7 +123,7 @@ export function AdminUsersPage({ onNavigate }: { onNavigate: (page: string) => v
       )}
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 mb-4">
+      <div className="mb-5 flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-3">
         <Search className="w-4 h-4 text-muted-foreground" />
         <input
           type="text"
@@ -139,17 +141,82 @@ export function AdminUsersPage({ onNavigate }: { onNavigate: (page: string) => v
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-2xl border border-border">
+          <div className="space-y-3 lg:hidden">
+            {filtered.map(u => {
+              const statusLabel = u.is_premium ? 'Premium' : 'Free';
+              const planLabel = u.plan_name || (u.is_premium ? 'Premium plan' : 'Free plan');
+              const subscriptionEnds = u.sub_end_date ? new Date(u.sub_end_date).toLocaleDateString() : null;
+              const joinedOn = new Date(u.created_at).toLocaleDateString();
+
+              return (
+                <div key={u.id} className="rounded-3xl border border-border bg-card p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-medium text-primary">
+                      {u.user_name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium">{u.user_name}</h3>
+                        {u.user_role === 'admin' && (
+                          <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-500">Admin</span>
+                        )}
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] ${
+                          u.is_premium ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 break-all text-sm text-muted-foreground">{u.email}</p>
+
+                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-background px-4 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Plan</div>
+                          <div className="mt-1 text-sm font-medium">{planLabel}</div>
+                        </div>
+                        <div className="rounded-2xl bg-background px-4 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Subscription</div>
+                          <div className="mt-1 text-sm font-medium capitalize">{u.sub_status || 'Not active'}</div>
+                        </div>
+                        <div className="rounded-2xl bg-background px-4 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Phone</div>
+                          <div className="mt-1 text-sm font-medium">{u.phone || 'Not provided'}</div>
+                        </div>
+                        <div className="rounded-2xl bg-background px-4 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Joined</div>
+                          <div className="mt-1 text-sm font-medium">{joinedOn}</div>
+                        </div>
+                      </div>
+
+                      {subscriptionEnds && (
+                        <div className="mt-3 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                          Subscription ends on <span className="font-medium text-foreground">{subscriptionEnds}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filtered.length === 0 && (
+              <div className="rounded-3xl border border-border bg-card p-8 text-center text-muted-foreground">
+                No users found
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl border border-border lg:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
                   <th className="text-left p-3 font-medium">Name</th>
                   <th className="text-left p-3 font-medium">Email</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Phone</th>
+                  <th className="text-left p-3 font-medium">Phone</th>
                   <th className="text-left p-3 font-medium">Status</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Plan</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Sub Ends</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Joined</th>
+                  <th className="text-left p-3 font-medium">Plan</th>
+                  <th className="text-left p-3 font-medium">Sub Ends</th>
+                  <th className="text-left p-3 font-medium">Joined</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,31 +230,29 @@ export function AdminUsersPage({ onNavigate }: { onNavigate: (page: string) => v
                         <div>
                           <p className="font-medium">{u.user_name}</p>
                           {u.user_role === 'admin' && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500">Admin</span>
+                            <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-xs text-violet-500">Admin</span>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="p-3 text-muted-foreground">{u.email}</td>
-                    <td className="p-3 text-muted-foreground hidden md:table-cell">{u.phone || '—'}</td>
+                    <td className="p-3 text-muted-foreground">{u.phone || '-'}</td>
                     <td className="p-3">
                       {u.is_premium ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-600">
-                          <Crown className="w-3 h-3" /> Premium
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600">
+                          <Crown className="h-3 w-3" /> Premium
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                           Free
                         </span>
                       )}
                     </td>
-                    <td className="p-3 text-muted-foreground hidden md:table-cell">{u.plan_name || '—'}</td>
-                    <td className="p-3 text-muted-foreground hidden lg:table-cell">
-                      {u.sub_end_date ? new Date(u.sub_end_date).toLocaleDateString() : '—'}
+                    <td className="p-3 text-muted-foreground">{u.plan_name || '-'}</td>
+                    <td className="p-3 text-muted-foreground">
+                      {u.sub_end_date ? new Date(u.sub_end_date).toLocaleDateString() : '-'}
                     </td>
-                    <td className="p-3 text-muted-foreground hidden lg:table-cell">
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
+                    <td className="p-3 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (

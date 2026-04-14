@@ -3,7 +3,24 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import { SURAHS, RECITERS, SAMPLE_AYAHS } from '../data/mock-data';
 import api from '../api/axios';
-import { Search as SearchIcon, X, Crown, BookOpen, Headphones, FileText, Play } from 'lucide-react';
+import { Search as SearchIcon, X, Crown, BookOpen, Headphones, FileText, Play, Sparkles, ArrowRight } from 'lucide-react';
+
+interface SearchSurah {
+  number: number;
+  name: string;
+  nameArabic: string;
+  translation: string;
+  verses: number;
+  type: string;
+}
+
+interface SurahDetailPayload {
+  id: number;
+  arabic_name: string;
+  english_name: string;
+  ayah_count: number;
+  revelation_type: string;
+}
 
 export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: any) => void }) {
   const { isPremium } = useAuth();
@@ -38,6 +55,14 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
      surah.nameArabic.includes(searchQuery) ||
      surah.translation.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const mapSurahToDetailPayload = (surah: SearchSurah): SurahDetailPayload => ({
+    id: surah.number,
+    arabic_name: surah.nameArabic,
+    english_name: surah.name,
+    ayah_count: surah.verses,
+    revelation_type: surah.type,
+  });
 
   const filteredReciters = RECITERS.filter(reciter =>
     (activeFilter === 'all' || activeFilter === 'reciter') &&
@@ -122,7 +147,7 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
                 {filteredSurahs.map((surah) => (
                   <div
                     key={surah.number}
-                    onClick={() => onNavigate('surah-detail', surah)}
+                    onClick={() => onNavigate('surah-detail', mapSurahToDetailPayload(surah))}
                     className="bg-card p-4 rounded-2xl border border-border hover:border-primary transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
@@ -220,6 +245,23 @@ export function SearchPage({ onNavigate }: { onNavigate: (page: string, data?: a
             </section>
           )}
         </div>
+      )}
+
+      {!isPremium && (
+        <button
+          type="button"
+          onClick={() => onNavigate('subscription')}
+          className="fixed bottom-[72px] left-4 right-4 z-30 flex items-center gap-3 rounded-2xl border border-accent/20 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-left text-white shadow-[0_18px_35px_-18px_rgba(16,185,129,0.65)] md:hidden"
+        >
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white/15">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold">Unlock Premium Reciters</div>
+            <div className="truncate text-xs text-white/85">Go ad-free, access all reciters, and listen offline.</div>
+          </div>
+          <ArrowRight className="h-5 w-5 flex-shrink-0 text-white/90" />
+        </button>
       )}
     </div>
   );

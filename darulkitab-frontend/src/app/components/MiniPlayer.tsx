@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Play, Pause, X, ChevronUp, Crown, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
+const DEFAULT_RECITER_NAME = 'Moula Muft Amir Khan Quasmi';
+
 export function MiniPlayer({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { currentAyah, isPlaying, isBuffering, currentTime, duration, togglePlayPause, maximize, close } = useAudioPlayer();
   const { isPremium } = useAuth();
@@ -20,9 +22,9 @@ export function MiniPlayer({ onNavigate }: { onNavigate: (page: string) => void 
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40"
+      className="fixed bottom-[72px] md:bottom-0 left-0 right-0 bg-card border-t border-border z-40"
     >
-      <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-4 py-2.5">
         <div className="flex items-center gap-4">
           {/* Album Art / Artwork */}
           <div

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useLibraryFeature } from '../hooks/useLibraryFeature';
 import api from '../api/axios';
-import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X, ExternalLink, FileText, Mail, Lock } from 'lucide-react';
+import { Moon, Sun, Volume2, Globe, Crown, LogOut, User, Bell, Shield, HelpCircle, Loader2, MessageSquare, Send, CheckCircle2, X, ExternalLink, FileText, Mail, Lock, BookOpen } from 'lucide-react';
 
 export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { user, logout, isPremium, isAdmin } = useAuth();
+  const { isLibraryEnabled, setLibraryFeatureEnabled } = useLibraryFeature();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [audioQuality, setAudioQuality] = useState(isPremium ? 'high' : 'standard');
   const [language, setLanguage] = useState('english');
@@ -119,6 +121,35 @@ export function SettingsPage({ onNavigate }: { onNavigate: (page: string) => voi
               <span className="flex-1 text-left">Admin Dashboard</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500">Admin</span>
             </button>
+            <div className="border-t border-violet-500/20 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-violet-500" />
+                    <span>Show Library menu</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Control whether the `Library` menu item is visible in desktop and mobile navigation.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setLibraryFeatureEnabled(!isLibraryEnabled)}
+                  className={`relative h-6 w-12 rounded-full transition-colors ${
+                    isLibraryEnabled ? 'bg-primary' : 'bg-muted'
+                  }`}
+                  aria-label={isLibraryEnabled ? 'Hide Library menu' : 'Show Library menu'}
+                  aria-pressed={isLibraryEnabled}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      isLibraryEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}

@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+ï»¿import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import api from '../api/axios';
 import { RECITERS, SAMPLE_AYAHS } from '../data/mock-data';
-import { Play, Crown, BookOpen, Headphones, Award, Target, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
+import { Play, Crown, BookOpen, Headphones, CheckCircle2, RotateCcw, Clock, Sparkles, ArrowRight } from 'lucide-react';
+
+const DEFAULT_RECITER_NAME = 'Moula Muft Amir Khan Quasmi';
 
 interface ContinueItem {
   audio_id: number;
@@ -20,37 +22,16 @@ interface ContinueItem {
   english_name: string;
 }
 
-interface UserStats {
-  total_tracks: number;
-  completed_tracks: number;
-  in_progress_tracks: number;
-  total_listening_hours: number;
-  overall_percent: number;
-  completed_surahs: number;
-  favorites_count: number;
-  level: { name: string; name_ar: string; min: number };
-  next_level: { name: string; name_ar: string; min: number } | null;
-  levels: Array<{ name: string; name_ar: string; min: number }>;
-}
-
 export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any) => void }) {
-  const { user, isPremium } = useAuth();
+  const { isPremium } = useAuth();
   const { play, isPlaying, currentAyah, currentTime, duration, markTrackComplete, resetTrackProgress } = useAudioPlayer();
   const [continueItems, setContinueItems] = useState<ContinueItem[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [showLevelsTimeline, setShowLevelsTimeline] = useState(false);
-  const [swipedItemId, setSwipedItemId] = useState<number | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const wasPlayingRef = React.useRef(false);
-  const touchStartXRef = React.useRef<number | null>(null);
 
   const fetchData = React.useCallback(() => {
     api.get('/user/get-progress.php').then((res) => {
       if (Array.isArray(res.data)) setContinueItems(res.data);
-    }).catch(() => {});
-
-    api.get('/user/stats.php').then((res) => {
-      if (res.data && res.data.level) setStats(res.data);
     }).catch(() => {});
   }, []);
 
@@ -91,16 +72,6 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       title: `${ayah.surahName} - Ayah ${ayah.ayahNumber}`,
     });
   };
-
-  const overallPercent = Math.min(100, Math.max(0, stats?.overall_percent ?? 0));
-  const currentLevelStart = stats?.level.min ?? 0;
-  const nextLevelStart = stats?.next_level?.min ?? 100;
-  const currentLevelSpan = Math.max(1, nextLevelStart - currentLevelStart);
-  const levelCompletedPercent = stats
-    ? Math.min(100, Math.max(0, Math.round(((overallPercent - currentLevelStart) / currentLevelSpan) * 100)))
-    : 0;
-  const nextLevelGap = stats?.next_level ? Math.max(0, stats.next_level.min - overallPercent) : 0;
-  const levels = stats?.levels ?? [];
   const liveContinueItem = currentAyah && currentTime > 0 && !(duration > 0 && currentTime >= duration * 0.95)
     ? {
         audio_id: Number(currentAyah.id),
@@ -147,7 +118,7 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
       surahNameArabic: item.arabic_name,
       ayahNumber: item.ayah_start || undefined,
       ayahEnd: item.ayah_end || undefined,
-      reciter: item.reciter || 'Unknown',
+      reciter: item.reciter || DEFAULT_RECITER_NAME,
       title: `${item.english_name} (${item.ayah_start || ''}${item.ayah_end ? `-${item.ayah_end}` : ''})`,
       audioUrl: `${api.defaults.baseURL}quran/stream.php?id=${item.audio_id}&token=${encodeURIComponent(token)}`,
     });
@@ -165,28 +136,8 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
 
       setContinueItems((previousItems) => previousItems.filter((item) => Number(item.audio_id) !== Number(audioId)));
     } finally {
-      setSwipedItemId(null);
       setActionLoadingId(null);
     }
-  };
-
-  const handleCardTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (window.innerWidth >= 768) return;
-    touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
-  };
-
-  const handleCardTouchEnd = (audioId: number, e: React.TouchEvent<HTMLDivElement>) => {
-    if (window.innerWidth >= 768 || touchStartXRef.current === null) return;
-
-    const deltaX = (e.changedTouches[0]?.clientX ?? 0) - touchStartXRef.current;
-
-    if (deltaX <= -48) {
-      setSwipedItemId(audioId);
-    } else if (deltaX >= 36 && swipedItemId === audioId) {
-      setSwipedItemId(null);
-    }
-
-    touchStartXRef.current = null;
   };
 
   const formatPosition = (seconds: number) => {
@@ -197,244 +148,39 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
   };
 
   return (
-    <div className="space-y-8 pb-32 md:pb-10">
-      <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-6 text-white md:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em]">
-                {isPremium ? 'Premium listener' : 'Daily progress'}
-              </span>
-              <span className="text-sm text-white/70">{isPremium ? 'Pro Plan' : 'Free Plan'}</span>
-            </div>
-            <h2 className="mb-2 text-2xl md:text-4xl">{user?.user_name || 'User'}</h2>
-            <p className="text-sm text-white/78 md:text-base">
-              Continue your Quran journey with a clear view of your listening progress and next milestone.
-            </p>
-          </div>
-
-          {!isPremium ? (
-            <button
-              onClick={() => onNavigate('subscription')}
-              className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-accent px-5 py-2.5 text-sm text-accent-foreground transition-colors hover:bg-accent/90"
-            >
-              <Crown className="h-4 w-4" />
-              Upgrade
-            </button>
-          ) : (
-            <span className="self-start rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium">Pro Active</span>
-          )}
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-white/14 bg-white/10 p-4 backdrop-blur-sm md:p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-2xl">
-              <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-white/60">
-                {isPremium ? 'Premium membership active' : 'Premium access'}
-              </p>
-              <h3 className="text-lg font-medium md:text-xl">
-                {isPremium ? 'You have full listening access unlocked.' : 'Unlock every reciter, surah, and uninterrupted resume tracking.'}
-              </h3>
-              <p className="mt-1 text-sm text-white/72">
-                {isPremium
-                  ? 'Enjoy premium recitations, smoother progress sync, and your full library across devices.'
-                  : 'Upgrade once to access the full Quran library, premium reciters, and a more seamless listening journey.'}
-              </p>
-            </div>
-
-            {!isPremium ? (
-              <button
-                type="button"
-                onClick={() => onNavigate('subscription')}
-                className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-white px-5 py-2.5 text-sm text-primary transition-colors hover:bg-white/92"
-              >
-                <Crown className="h-4 w-4" />
-                View Premium
-              </button>
-            ) : (
-              <div className="self-start rounded-full border border-white/15 bg-white/12 px-4 py-2 text-sm text-white/90">
-                Premium benefits enabled
-              </div>
-            )}
-          </div>
-        </div>
-
-        {stats && (
-          <>
-            <div className="mb-5 mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
-                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/72">
-                  <BookOpen className="h-4 w-4" />
-                  Total Quran Listened %
-                </div>
-                <div className="text-3xl font-semibold">{overallPercent}%</div>
-                <p className="mt-1 text-xs text-white/68">
-                  Overall listening completion across your Quran progress.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
-                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/72">
-                  <Award className="h-4 w-4" />
-                  {stats.level.name} Level Badge
-                </div>
-                <div className="text-3xl font-semibold">{levelCompletedPercent}%</div>
-                <p className="mt-1 text-xs text-white/68">
-                  Completed within your current badge level.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
-                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/72">
-                  <Target className="h-4 w-4" />
-                  Next Level
-                </div>
-                <div className="text-2xl font-semibold">
-                  {stats.next_level ? stats.next_level.name : 'Max level'}
-                </div>
-                <p className="mt-1 text-xs text-white/68">
-                  {stats.next_level
-                    ? `${nextLevelGap}% more to unlock ${stats.next_level.name}.`
-                    : 'You have already reached the highest level.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Award className="h-4 w-4 text-white/80" />
-              <span className="text-sm font-medium">{stats.level.name}</span>
-              <span className="text-xs text-white/60" style={{ fontFamily: 'var(--font-family-arabic)' }}>
-                {stats.level.name_ar}
-              </span>
-              <span className="ml-auto text-xs text-white/70">
-                Current badge: {levelCompletedPercent}% complete
-                {stats.next_level && ` · Next Level: ${stats.next_level.name}`}
-              </span>
-            </div>
-            <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/20">
-              <div className="h-full rounded-full bg-white transition-all" style={{ width: `${levelCompletedPercent}%` }} />
-            </div>
-
-            <div className="mb-5">
-              <button
-                type="button"
-                onClick={() => setShowLevelsTimeline((previousValue) => !previousValue)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white transition-colors hover:bg-white/16"
-              >
-                <Award className="h-4 w-4" />
-                {showLevelsTimeline ? 'Hide all Levels' : 'View all Levels'}
-              </button>
-            </div>
-
-            {showLevelsTimeline && levels.length > 0 && (
-              <div className="mb-5 rounded-2xl border border-white/12 bg-white/8 p-4 md:p-5">
-                <div className="mb-4">
-                  <h3 className="text-base font-medium">All Levels Timeline</h3>
-                  <p className="mt-1 text-xs text-white/70">
-                    Your current level is highlighted, and completed levels stay marked above it.
-                  </p>
-                </div>
-
-                <div className="space-y-0">
-                  {levels.map((level, index) => {
-                    const isCurrent = stats.level.name === level.name && stats.level.min === level.min;
-                    const isCompleted = overallPercent >= level.min;
-                    const isLast = index === levels.length - 1;
-
-                    return (
-                      <div key={`${level.name}-${level.min}`} className="flex gap-4">
-                        <div className="flex w-6 flex-col items-center">
-                          <div
-                            className={`mt-1 h-4 w-4 rounded-full border-2 ${
-                              isCurrent
-                                ? 'border-white bg-accent shadow-[0_0_0_4px_rgba(255,255,255,0.12)]'
-                                : isCompleted
-                                  ? 'border-white bg-white'
-                                  : 'border-white/35 bg-transparent'
-                            }`}
-                          />
-                          {!isLast && (
-                            <div className={`mt-2 w-px flex-1 ${isCompleted ? 'bg-white/60' : 'bg-white/20'}`} />
-                          )}
-                        </div>
-
-                        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-6'}`}>
-                          <div
-                            className={`rounded-2xl border px-4 py-3 ${
-                              isCurrent
-                                ? 'border-accent/50 bg-accent/15'
-                                : isCompleted
-                                  ? 'border-white/12 bg-white/10'
-                                  : 'border-white/10 bg-white/5'
-                            }`}
-                          >
-                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">{level.name}</span>
-                                  <span className="text-xs text-white/65" style={{ fontFamily: 'var(--font-family-arabic)' }}>
-                                    {level.name_ar}
-                                  </span>
-                                </div>
-                                <p className="mt-1 text-xs text-white/70">
-                                  Unlocks at {level.min}% total Quran listened.
-                                </p>
-                              </div>
-
-                              <div className="flex items-center gap-2 text-xs">
-                                {isCurrent && <span className="rounded-full bg-white/14 px-2.5 py-1 text-white">Current Level</span>}
-                                {!isCurrent && isCompleted && <span className="rounded-full bg-white/12 px-2.5 py-1 text-white/90">Completed</span>}
-                                {!isCompleted && <span className="rounded-full bg-white/8 px-2.5 py-1 text-white/70">Locked</span>}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div>
-                <div className="text-lg font-semibold">{stats.completed_tracks}</div>
-                <div className="text-[11px] text-white/60">Completed Tracks</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold">{stats.completed_surahs}</div>
-                <div className="text-[11px] text-white/60">Completed Surahs</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold">{stats.total_listening_hours}h</div>
-                <div className="text-[11px] text-white/60">Hours Listened</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold">{stats.favorites_count}</div>
-                <div className="text-[11px] text-white/60">Favorites Saved</div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
+    <div className={hasContinueItems ? 'space-y-8 pb-32 md:pb-10' : 'pb-0 md:pb-10'}>
       {hasContinueItems ? (
-        <section className="rounded-3xl border border-border/70 bg-card/60 p-5 md:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-xl">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Continue Listening
-            </h3>
-            <button onClick={() => onNavigate('surah-list')} className="text-sm text-primary hover:underline">
-              View All
-            </button>
+        <section className="space-y-4">
+          <div className="rounded-3xl border border-border/70 bg-card/60 p-5 md:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xl">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Continue Listening
+              </h3>
+              <button onClick={() => onNavigate('surah-list')} className="text-sm text-primary hover:underline">
+                View All
+              </button>
+            </div>
           </div>
 
-          <p className="mb-5 text-sm text-muted-foreground">
-            Pick up exactly where you left off. Use the play button to reopen the full player, or manage progress directly from each card.
-          </p>
+          {!isPremium && (
+            <button
+              type="button"
+              onClick={() => onNavigate('subscription')}
+              className="flex w-full items-center gap-3 rounded-2xl border border-accent/20 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-left text-white shadow-[0_18px_35px_-20px_rgba(16,185,129,0.55)] transition-transform hover:scale-[1.01]"
+            >
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white/15">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">Subscribe for Premium Access</div>
+                <div className="truncate text-xs text-white/85">Unlock all reciters, offline listening, and ad-free playback.</div>
+              </div>
+              <ArrowRight className="h-5 w-5 flex-shrink-0 text-white/90" />
+            </button>
+          )}
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="overflow-hidden border border-border bg-background">
             {displayedContinueItems.map((item) => {
               const isCurrentTrack = Number(currentAyah?.id) === Number(item.audio_id);
               const effectiveDuration = isCurrentTrack
@@ -450,7 +196,6 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
                 ? Math.round((effectivePosition / effectiveDuration) * 100)
                 : 0;
               const showReset = effectivePosition > 0 || item.completed === 1;
-              const isSwipeOpen = swipedItemId === item.audio_id;
               const ayahLabel = item.ayah_start
                 ? `Ayah ${item.ayah_start}${item.ayah_end ? `-${item.ayah_end}` : ''}`
                 : 'Track progress';
@@ -458,134 +203,91 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
               return (
                 <div
                   key={item.audio_id}
-                  className="overflow-hidden rounded-3xl border border-border bg-background/80 shadow-sm transition-colors hover:border-primary/40"
+                  className="border-b border-border last:border-b-0"
                 >
-                  <div
-                    className="p-4 md:p-5"
-                    onTouchStart={handleCardTouchStart}
-                    onTouchEnd={(e) => handleCardTouchEnd(item.audio_id, e)}
-                  >
+                  <div className="p-4 md:p-5">
                     <div className="flex items-start gap-4">
                       <button
                         type="button"
                         onClick={() => playContinueTrack(item)}
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
                         aria-label={`Play ${item.english_name}`}
                       >
                         <Play className="ml-0.5 h-5 w-5" />
                       </button>
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="truncate text-base font-medium">{item.english_name}</h4>
-                          {isCurrentTrack && (
-                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
-                              Live now
-                            </span>
-                          )}
-                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="truncate text-base font-medium">{item.english_name}</h4>
+                              {isCurrentTrack && (
+                                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                                  Live now
+                                </span>
+                              )}
+                            </div>
 
-                        <p className="mt-1 truncate text-sm text-muted-foreground">
-                          {ayahLabel} · {item.reciter || 'Unknown'}
-                        </p>
-
-                        <div className="mt-3 flex items-center gap-2">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                              {ayahLabel} Â· {item.reciter || DEFAULT_RECITER_NAME}
+                            </p>
                           </div>
-                          <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">{progressPct}%</span>
-                        </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {formatPosition(effectivePosition)}
-                          </span>
-                          <span>{effectiveDuration > 0 ? `${formatPosition(effectiveDuration)} total` : 'In progress'}</span>
-                          {item.completed === 1 && (
-                            <span className="inline-flex items-center gap-1 text-green-600">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Completed
-                            </span>
+                          {showReset && (
+                            <button
+                              type="button"
+                              onClick={() => handleContinueAction(item.audio_id, 'reset')}
+                              disabled={actionLoadingId === item.audio_id}
+                              className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60"
+                              aria-label="Reset track"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 hidden flex-wrap items-center gap-3 md:flex">
+                    <div className="mt-4 flex items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden bg-muted">
+                        <div className="h-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+                      </div>
+                      <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">{progressPct}%</span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatPosition(effectivePosition)}
+                        </span>
+                        <span>{effectiveDuration > 0 ? `${formatPosition(effectiveDuration)} total` : 'In progress'}</span>
+                        {item.completed === 1 && (
+                          <span className="inline-flex items-center gap-1 text-green-600">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Completed
+                          </span>
+                        )}
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => handleContinueAction(item.audio_id, 'complete')}
-                        disabled={actionLoadingId === item.audio_id}
-                        className="inline-flex items-center gap-2 rounded-full border border-green-500/25 bg-green-500/8 px-4 py-2 text-sm text-green-700 transition-colors hover:bg-green-500/14 disabled:opacity-60"
+                        disabled={actionLoadingId === item.audio_id || item.completed === 1}
+                        className="inline-flex items-center gap-2 border border-green-500/25 bg-green-500/8 px-3 py-2 text-sm text-green-700 transition-colors hover:bg-green-500/14 disabled:opacity-60"
                       >
                         <CheckCircle2 className="h-4 w-4" />
                         Mark as complete
                       </button>
-
-                      {showReset && (
-                        <button
-                          type="button"
-                          onClick={() => handleContinueAction(item.audio_id, 'reset')}
-                          disabled={actionLoadingId === item.audio_id}
-                          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                          Reset Track
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3 md:hidden">
-                      <span className="text-xs text-muted-foreground">Swipe left for actions</span>
-                      <button
-                        type="button"
-                        onClick={() => setSwipedItemId((previousId) => previousId === item.audio_id ? null : item.audio_id)}
-                        className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
-                      >
-                        {isSwipeOpen ? 'Hide actions' : 'Actions'}
-                      </button>
                     </div>
                   </div>
-
-                  {isSwipeOpen && (
-                    <div className="border-t border-border bg-muted/35 p-3 md:hidden">
-                      <div className="grid gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleContinueAction(item.audio_id, 'complete')}
-                          disabled={actionLoadingId === item.audio_id}
-                          className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-60"
-                        >
-                          Mark as complete
-                        </button>
-                        {showReset && (
-                          <button
-                            type="button"
-                            onClick={() => handleContinueAction(item.audio_id, 'reset')}
-                            disabled={actionLoadingId === item.audio_id}
-                            className="rounded-2xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
-                          >
-                            Reset Track
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setSwipedItemId(null)}
-                          className="rounded-2xl px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-background"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </section>
       ) : (
-        <div>
+        <div className="grid min-h-[calc(100dvh-11rem)] place-items-center md:flex md:min-h-0 md:justify-start">
           <button
             onClick={() => onNavigate('surah-list')}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary/90"
@@ -678,3 +380,4 @@ export function HomePage({ onNavigate }: { onNavigate: (page: string, data?: any
     </div>
   );
 }
+

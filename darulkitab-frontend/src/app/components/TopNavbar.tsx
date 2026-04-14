@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Search, PanelLeftClose, PanelLeftOpen, MessageSquare, Bell } from 'lucide-react';
+import { Sun, Moon, PanelLeftClose, PanelLeftOpen, MessageSquare, Bell, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedbackDialog } from './FeedbackDialog';
 import { useNotificationsSummary } from '../hooks/useNotifications';
@@ -19,7 +19,7 @@ export function TopNavbar({
   isSidebarCollapsed,
   onToggleSidebar,
 }: TopNavbarProps) {
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const initials = user?.user_name?.charAt(0).toUpperCase() || 'U';
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const { unreadCount } = useNotificationsSummary();
@@ -38,16 +38,20 @@ export function TopNavbar({
             {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
 
-          <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 w-72 lg:w-80">
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search surahs, reciters..."
-              className="bg-transparent text-sm outline-none flex-1 placeholder:text-muted-foreground"
-              onFocus={() => onNavigate('search')}
-              readOnly
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('subscription')}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm transition-colors ${
+              isPremium
+                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15'
+                : 'border-accent/30 bg-accent/10 text-accent hover:bg-accent/15'
+            }`}
+            aria-label="Open premium subscription page"
+            title="Open premium subscription page"
+          >
+            <Crown className="w-4 h-4" />
+            <span className="font-medium">{isPremium ? 'Premium Active' : 'Go Premium'}</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -99,7 +103,7 @@ export function TopNavbar({
           </div>
 
           <button
-            onClick={() => onNavigate('settings')}
+            onClick={() => onNavigate('profile')}
             className="flex items-center gap-2 hover:bg-muted rounded-xl px-2 py-1.5 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">

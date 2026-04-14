@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, BookOpen, User } from 'lucide-react';
+import { Home, Search, BookOpen, Crown } from 'lucide-react';
 
 interface BottomNavProps {
   activePage: string;
@@ -11,7 +11,7 @@ export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'search', label: 'Search', icon: Search },
     { id: 'surah-list', label: 'All Suras', icon: BookOpen },
-    { id: 'settings', label: 'Profile', icon: User }
+    { id: 'subscription', label: 'Pro', icon: Crown }
   ];
 
   return (
