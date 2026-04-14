@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut, BarChart3, ScrollText, User } from 'lucide-react';
+import { Home, Search, Library, Settings, BookOpen, LayoutGrid, Shield, Users, CreditCard, MessageSquare, IndianRupee, Bell, LogOut, BarChart3, ScrollText, User, CalendarDays } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationsSummary } from '../hooks/useNotifications';
 import { useLibraryFeature } from '../hooks/useLibraryFeature';
@@ -18,6 +18,7 @@ export function Sidebar({ activePage, onNavigate, isCollapsed }: SidebarProps) {
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'weekly-schedule', label: 'Schedule', icon: CalendarDays },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'surah-list', label: 'Surahs', icon: BookOpen },
     { id: 'search', label: 'Search', icon: Search },

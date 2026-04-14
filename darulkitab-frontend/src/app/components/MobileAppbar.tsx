@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sun, Moon, Settings, X, Library, MessageSquare, Home, Search, BookOpen, Bell, User } from 'lucide-react';
+import { Sun, Moon, Settings, X, Library, MessageSquare, Home, Search, BookOpen, Bell, User, CalendarDays } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedbackDialog } from './FeedbackDialog';
 import { useNotificationsSummary } from '../hooks/useNotifications';
@@ -22,6 +22,7 @@ export function MobileAppbar({ theme, onToggleTheme, onNavigate }: MobileAppbarP
 
   const drawerItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'weekly-schedule', label: 'Schedule', icon: CalendarDays },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'surah-list', label: 'All Suras', icon: BookOpen },
     { id: 'search', label: 'Search', icon: Search },

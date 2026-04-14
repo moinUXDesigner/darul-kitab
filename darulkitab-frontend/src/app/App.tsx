@@ -16,6 +16,7 @@ import { NotificationsPage } from './components/NotificationsPage';
 import { ProfilePage } from './components/ProfilePage';
 import { SettingsPage } from './components/SettingsPage';
 import { ChangePasswordPage } from './components/ChangePasswordPage';
+import { WeeklySchedulePage } from './components/WeeklySchedulePage';
 import { MiniPlayer } from './components/MiniPlayer';
 import { FullPlayer } from './components/FullPlayer';
 import { BottomNav } from './components/BottomNav';
@@ -174,6 +175,7 @@ function AppContent() {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
           {currentPage === 'home' && <HomePage onNavigate={handleNavigate} />}
+          {currentPage === 'weekly-schedule' && <WeeklySchedulePage />}
           {currentPage === 'search' && <SearchPage onNavigate={handleNavigate} />}
           {currentPage === 'surah-list' && <SurahListPage onNavigate={handleNavigate} />}
           {currentPage === 'surah-detail' && pageData && (
