@@ -70,7 +70,7 @@ export function AdminDashboardPage({ onNavigate }: { onNavigate: (page: string) 
     { label: 'Expiring Soon', value: stats.expiring_soon, icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10', page: 'admin-users' },
     { label: 'Expired Subs', value: stats.expired_subscriptions, icon: UserX, color: 'text-red-500', bg: 'bg-red-500/10', page: 'admin-users' },
     { label: 'New (30 days)', value: stats.new_users_30d, icon: TrendingUp, color: 'text-violet-500', bg: 'bg-violet-500/10', page: 'admin-users' },
-    { label: 'Total Revenue', value: `Rs ${stats.total_revenue.toLocaleString()}`, icon: IndianRupee, color: 'text-green-500', bg: 'bg-green-500/10', page: 'admin-settlements' },
+    { label: 'Settled Revenue', value: `Rs ${stats.total_revenue.toLocaleString()}`, icon: IndianRupee, color: 'text-green-500', bg: 'bg-green-500/10', page: 'admin-settlements' },
     { label: 'Feedback', value: stats.feedback_count, icon: MessageSquare, color: 'text-pink-500', bg: 'bg-pink-500/10', page: 'admin-feedback' },
   ];
 

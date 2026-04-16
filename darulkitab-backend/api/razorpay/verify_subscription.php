@@ -53,15 +53,33 @@ if ($razorpayStatus === 'active') {
     ");
     $stmt->execute([$subscriptionId, $user->id]);
 
-    // Update payment if payment ID provided
+    // Sync the local payment row with the real Razorpay payment instead of
+    // marking plan-price placeholders as paid.
     if (!empty($paymentId)) {
-        $stmt = $db->prepare("
-            UPDATE payments 
-            SET gateway_payment_id = ?, status = 'paid'
-            WHERE gateway_subscription_id = ? AND user_id = ?
-            ORDER BY id DESC LIMIT 1
-        ");
-        $stmt->execute([$paymentId, $subscriptionId, $user->id]);
+        $paymentResponse = razorpayRequest('GET', "payments/$paymentId");
+        $paymentAmount = null;
+
+        if (!razorpayHasError($paymentResponse) && isset($paymentResponse['amount'])) {
+            $paymentAmount = round(((float)$paymentResponse['amount']) / 100, 2);
+        }
+
+        if ($paymentAmount !== null) {
+            $stmt = $db->prepare("
+                UPDATE payments
+                SET gateway_payment_id = ?, amount = ?, status = 'paid'
+                WHERE gateway_subscription_id = ? AND user_id = ?
+                ORDER BY id DESC LIMIT 1
+            ");
+            $stmt->execute([$paymentId, $paymentAmount, $subscriptionId, $user->id]);
+        } else {
+            $stmt = $db->prepare("
+                UPDATE payments
+                SET gateway_payment_id = ?
+                WHERE gateway_subscription_id = ? AND user_id = ?
+                ORDER BY id DESC LIMIT 1
+            ");
+            $stmt->execute([$paymentId, $subscriptionId, $user->id]);
+        }
     }
 
     logAnalyticsEvent($db, [

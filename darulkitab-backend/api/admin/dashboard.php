@@ -9,6 +9,7 @@
 require_once __DIR__ . '/../cors.php';
 require_once __DIR__ . '/../auth/middleware.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/razorpay.php';
 
 $user = adminGuard();
 $db = (new Database())->connect();
@@ -37,8 +38,8 @@ $expired = $db->query("SELECT COUNT(*) FROM user_subscriptions WHERE status = 'e
 // Cancelled subscriptions
 $cancelled = $db->query("SELECT COUNT(*) FROM user_subscriptions WHERE status = 'cancelled'")->fetchColumn();
 
-// Total revenue
-$revenue = $db->query("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid'")->fetchColumn();
+// Total settled revenue from Razorpay bank settlements.
+$revenue = getTotalSettledRevenue();
 
 // Users registered in last 30 days
 $newUsers30d = $db->query("SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)")->fetchColumn();
@@ -61,3 +62,40 @@ echo json_encode([
         "feedback_count" => (int)$feedbackCount,
     ]
 ]);
+
+function getTotalSettledRevenue(): float {
+    $batchSize = 100;
+    $skip = 0;
+    $totalPaise = 0;
+    $maxPages = 20;
+
+    for ($page = 0; $page < $maxPages; $page++) {
+        $response = razorpayRequest('GET', "settlements?count=$batchSize&skip=$skip");
+
+        if (razorpayHasError($response)) {
+            error_log('dashboard settled revenue sync failed: ' . razorpayErrorMessage($response, 'Failed to fetch Razorpay settlements'));
+            return 0.0;
+        }
+
+        $items = $response['items'] ?? [];
+        if (!is_array($items) || count($items) === 0) {
+            break;
+        }
+
+        foreach ($items as $item) {
+            if (($item['status'] ?? '') !== 'processed') {
+                continue;
+            }
+
+            $totalPaise += (int)($item['amount'] ?? 0);
+        }
+
+        if (count($items) < $batchSize) {
+            break;
+        }
+
+        $skip += $batchSize;
+    }
+
+    return round($totalPaise / 100, 2);
+}
