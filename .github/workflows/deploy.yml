@@ -80,23 +80,23 @@ jobs:
             exit 1
           fi
 
-          cat > darulkitab-backend/api/.env <<EOF
-          APP_NAME=$APP_NAME
-          APP_BASE_URL=$APP_BASE_URL
-          MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
-          MAIL_FROM_NAME=$MAIL_FROM_NAME
-          MAIL_REPLY_TO=$MAIL_REPLY_TO
-          SMTP_HOST=$SMTP_HOST
-          SMTP_PORT=$SMTP_PORT
-          SMTP_ENCRYPTION=$SMTP_ENCRYPTION
-          SMTP_USERNAME=$SMTP_USERNAME
-          SMTP_PASSWORD=$SMTP_PASSWORD
-          SMTP_TIMEOUT=$SMTP_TIMEOUT
-          PASSWORD_RESET_TTL_MINUTES=$PASSWORD_RESET_TTL_MINUTES
-          RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID
-          RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET
-          RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET
-          EOF
+          {
+            printf 'APP_NAME=%s\n' "$APP_NAME"
+            printf 'APP_BASE_URL=%s\n' "$APP_BASE_URL"
+            printf 'MAIL_FROM_ADDRESS=%s\n' "$MAIL_FROM_ADDRESS"
+            printf 'MAIL_FROM_NAME=%s\n' "$MAIL_FROM_NAME"
+            printf 'MAIL_REPLY_TO=%s\n' "$MAIL_REPLY_TO"
+            printf 'SMTP_HOST=%s\n' "$SMTP_HOST"
+            printf 'SMTP_PORT=%s\n' "$SMTP_PORT"
+            printf 'SMTP_ENCRYPTION=%s\n' "$SMTP_ENCRYPTION"
+            printf 'SMTP_USERNAME=%s\n' "$SMTP_USERNAME"
+            printf 'SMTP_PASSWORD=%s\n' "$SMTP_PASSWORD"
+            printf 'SMTP_TIMEOUT=%s\n' "$SMTP_TIMEOUT"
+            printf 'PASSWORD_RESET_TTL_MINUTES=%s\n' "$PASSWORD_RESET_TTL_MINUTES"
+            printf 'RAZORPAY_KEY_ID=%s\n' "$RAZORPAY_KEY_ID"
+            printf 'RAZORPAY_KEY_SECRET=%s\n' "$RAZORPAY_KEY_SECRET"
+            printf 'RAZORPAY_WEBHOOK_SECRET=%s\n' "$RAZORPAY_WEBHOOK_SECRET"
+          } > darulkitab-backend/api/.env
 
       - name: Install rsync and OpenSSH client
         run: sudo apt-get update && sudo apt-get install -y rsync openssh-client
@@ -138,10 +138,10 @@ jobs:
 
           eval "$(ssh-agent -s)"
           if [ -n "${SSH_PASSPHRASE:-}" ]; then
-            cat > ~/.ssh/ssh_askpass.sh <<'EOF'
-            #!/bin/sh
-            printf '%s\n' "$SSH_PASSPHRASE"
-            EOF
+            {
+              printf '#!/bin/sh\n'
+              printf 'printf '\''%%s\\n'\'' "$SSH_PASSPHRASE"\n'
+            } > ~/.ssh/ssh_askpass.sh
             chmod 700 ~/.ssh/ssh_askpass.sh
 
             export SSH_ASKPASS=~/.ssh/ssh_askpass.sh
