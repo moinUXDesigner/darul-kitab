@@ -68,13 +68,18 @@ try {
     // Surahs fully completed
     $completedSurahs = 0;
     foreach ($surahData as &$s) {
+        $totalSurahTracks = (int)$s['total_tracks'];
+        $completedSurahTracks = (int)$s['completed_tracks'];
+        $isSurahComplete = $totalSurahTracks > 0 && $completedSurahTracks === $totalSurahTracks;
         $totalDuration = (float)$s['total_duration_seconds'];
         $listenedSeconds = (float)$s['listened_seconds'];
-        $s['progress_percent'] = $totalDuration > 0
+        $s['progress_percent'] = $isSurahComplete
+            ? 100
+            : ($totalDuration > 0
             ? round(min(100, ($listenedSeconds / $totalDuration) * 100))
-            : 0;
+            : 0);
 
-        if ((int)$s['total_tracks'] > 0 && (int)$s['completed_tracks'] === (int)$s['total_tracks']) {
+        if ($isSurahComplete) {
             $completedSurahs++;
         }
     }

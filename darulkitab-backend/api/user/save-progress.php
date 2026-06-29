@@ -31,7 +31,7 @@ try {
     ensureListeningProgressSchema($db);
 
     // Verify audio exists
-    $check = $db->prepare("SELECT id, surah_no FROM quran_audio WHERE id = ? AND is_active = 1");
+    $check = $db->prepare("SELECT id, surah_no, duration_seconds FROM quran_audio WHERE id = ? AND is_active = 1");
     $check->execute([$audioId]);
     $audio = $check->fetch(PDO::FETCH_ASSOC);
 
@@ -40,10 +40,12 @@ try {
         exit(json_encode(["message" => "Audio not found"]));
     }
 
-    $existingStmt = $db->prepare("SELECT position_seconds, completed FROM listening_progress WHERE user_id = ? AND audio_id = ? LIMIT 1");
+    $existingStmt = $db->prepare("SELECT position_seconds, duration_seconds, completed FROM listening_progress WHERE user_id = ? AND audio_id = ? LIMIT 1");
     $existingStmt->execute([$user->id, $audioId]);
     $existingProgress = $existingStmt->fetch(PDO::FETCH_ASSOC) ?: null;
     $previousPosition = isset($existingProgress['position_seconds']) ? (float)$existingProgress['position_seconds'] : 0;
+    $previousDuration = isset($existingProgress['duration_seconds']) ? (float)$existingProgress['duration_seconds'] : 0;
+    $knownDuration = max($durationSeconds, (float)($audio['duration_seconds'] ?? 0), $previousDuration, $previousPosition);
 
     // Explicit mark-complete or reset overrides auto-detection
     if ($resetProgress) {
@@ -51,6 +53,13 @@ try {
         $durationSeconds = $durationSeconds ?: 0;
         $completed = 0;
     } elseif ($markComplete) {
+        if ($knownDuration > 0) {
+            $durationSeconds = $knownDuration;
+            $positionSeconds = $knownDuration;
+        } else {
+            $positionSeconds = $previousPosition;
+            $durationSeconds = $previousDuration;
+        }
         $completed = 1;
     } else {
         // Mark completed if position >= 95% of duration
