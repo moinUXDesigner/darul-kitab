@@ -88,9 +88,12 @@ export function SurahDetailPage({
 
   const handleMarkComplete = async (audioId: number) => {
     await markTrackComplete(audioId);
+    const audio = ayahAudios.find((item) => item.id === audioId);
+    const fallbackDuration = Number(audio?.duration_seconds || 0);
+    const nextDuration = Number(progressMap[audioId]?.duration || fallbackDuration || 0);
     setProgressMap((prev) => ({
       ...prev,
-      [audioId]: { position: prev[audioId]?.duration || 0, duration: prev[audioId]?.duration || 0, completed: true },
+      [audioId]: { position: nextDuration, duration: nextDuration, completed: true },
     }));
     setConfirmAction(null);
   };
@@ -153,6 +156,10 @@ export function SurahDetailPage({
 
   const totalTracks = ayahAudios.length;
   const completedTracks = ayahAudios.filter((audio) => getEffectiveProgress(audio)?.completed).length;
+  const touchedTracks = ayahAudios.filter((audio) => {
+    const progress = getEffectiveProgress(audio);
+    return !!progress && (progress.completed || Number(progress.position || 0) > 0);
+  }).length;
   const totalDuration = ayahAudios.reduce((sum, audio) => sum + Number(audio.duration_seconds || 0), 0);
   const listenedDuration = ayahAudios.reduce((sum, audio) => {
     const progress = getEffectiveProgress(audio);
@@ -161,9 +168,15 @@ export function SurahDetailPage({
     if (progress.completed) return sum + trackDuration;
     return sum + Math.min(Number(progress.position || 0), trackDuration);
   }, 0);
-  const surahProgressPct = totalDuration > 0
-    ? Math.round((Math.min(listenedDuration, totalDuration) / totalDuration) * 100)
+  const isSurahComplete = totalTracks > 0 && completedTracks === totalTracks;
+  const durationProgressPct = totalDuration > 0
+    ? Math.floor((Math.min(listenedDuration, totalDuration) / totalDuration) * 100)
     : 0;
+  const trackProgressPct = totalTracks > 0
+    ? Math.floor((touchedTracks / totalTracks) * 100)
+    : 0;
+  const partialProgressPct = Math.max(durationProgressPct, trackProgressPct);
+  const surahProgressPct = isSurahComplete ? 100 : Math.min(99, partialProgressPct);
 
   if (loading) {
     return <div className="py-20 text-center">Loading ayahs...</div>;
@@ -187,7 +200,7 @@ export function SurahDetailPage({
           {surah.arabic_name}
         </p>
         <p className="mb-3 text-sm text-white/60">
-          {surah.ayah_count} verses � {surah.revelation_type}
+          {surah.ayah_count} verses â€¢ {surah.revelation_type}
         </p>
         {totalTracks > 0 && (
           <div className="mx-auto mt-2 max-w-xs">
@@ -195,7 +208,7 @@ export function SurahDetailPage({
               <div className="h-full rounded-full bg-white transition-all" style={{ width: `${surahProgressPct}%` }} />
             </div>
             <p className="mt-1 text-xs text-white/80">
-              {completedTracks}/{totalTracks} tracks � {surahProgressPct}% complete
+              {completedTracks}/{totalTracks} tracks â€¢ {surahProgressPct}% complete
             </p>
           </div>
         )}
@@ -212,8 +225,10 @@ export function SurahDetailPage({
       <div className="space-y-4">
         {ayahAudios.map((audio) => {
           const progress = getEffectiveProgress(audio);
-          const trackPct = progress && progress.duration > 0
-            ? Math.round((progress.position / progress.duration) * 100)
+          const trackPct = progress?.completed
+            ? 100
+            : progress && progress.duration > 0
+            ? Math.min(99, Math.floor((progress.position / progress.duration) * 100))
             : 0;
 
           return (
