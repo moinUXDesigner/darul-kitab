@@ -166,7 +166,7 @@ export function SurahListPage({
         {surahs.map((surah) => {
   const prog = progressMap[surah.id];
   const isComplete = !!prog && prog.total > 0 && prog.completed === prog.total;
-  const pct = isComplete ? 100 : (prog ? Math.min(100, Math.max(0, prog.percent)) : 0);
+  const pct = isComplete ? 100 : (prog ? Math.min(99, Math.max(0, prog.percent)) : 0);
   const isInProgress = prog && (prog.completed > 0 || prog.inProgress > 0);
 
   return (

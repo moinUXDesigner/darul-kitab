@@ -47,6 +47,7 @@ try {
             COUNT(DISTINCT qa.id) as total_tracks,
             COUNT(DISTINCT CASE WHEN lp.completed = 1 THEN lp.audio_id END) as completed_tracks,
             COUNT(DISTINCT CASE WHEN lp.completed = 0 AND lp.position_seconds > 0 THEN lp.audio_id END) as in_progress_tracks,
+            COUNT(DISTINCT CASE WHEN lp.completed = 1 OR lp.position_seconds > 0 THEN lp.audio_id END) as touched_tracks,
             COALESCE(SUM(COALESCE(qa.duration_seconds, lp.duration_seconds, 0)), 0) as total_duration_seconds,
             COALESCE(SUM(
                 CASE
@@ -70,14 +71,23 @@ try {
     foreach ($surahData as &$s) {
         $totalSurahTracks = (int)$s['total_tracks'];
         $completedSurahTracks = (int)$s['completed_tracks'];
+        $touchedSurahTracks = (int)$s['touched_tracks'];
         $isSurahComplete = $totalSurahTracks > 0 && $completedSurahTracks === $totalSurahTracks;
         $totalDuration = (float)$s['total_duration_seconds'];
         $listenedSeconds = (float)$s['listened_seconds'];
-        $s['progress_percent'] = $isSurahComplete
-            ? 100
-            : ($totalDuration > 0
-            ? round(min(100, ($listenedSeconds / $totalDuration) * 100))
-            : 0);
+
+        if ($isSurahComplete) {
+            $s['progress_percent'] = 100;
+        } else {
+            $durationPercent = $totalDuration > 0
+                ? (int)floor(min(99, ($listenedSeconds / $totalDuration) * 100))
+                : 0;
+            $trackPercent = $totalSurahTracks > 0
+                ? (int)floor(min(99, ($touchedSurahTracks / $totalSurahTracks) * 100))
+                : 0;
+
+            $s['progress_percent'] = min($durationPercent, $trackPercent);
+        }
 
         if ($isSurahComplete) {
             $completedSurahs++;
