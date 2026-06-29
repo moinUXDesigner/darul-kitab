@@ -114,7 +114,6 @@ jobs:
             SSH_HOST
             SSH_USERNAME
             SSH_PRIVATE_KEY
-            SSH_PASSPHRASE
             SSH_KNOWN_HOSTS
           )
 
@@ -137,17 +136,21 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
 
-          cat > ~/.ssh/ssh_askpass.sh <<'EOF'
-          #!/bin/sh
-          printf '%s\n' "$SSH_PASSPHRASE"
-          EOF
-          chmod 700 ~/.ssh/ssh_askpass.sh
-
           eval "$(ssh-agent -s)"
-          export SSH_ASKPASS=~/.ssh/ssh_askpass.sh
-          export SSH_ASKPASS_REQUIRE=force
-          export DISPLAY=:0
-          setsid ssh-add ~/.ssh/deploy_key < /dev/null
+          if [ -n "${SSH_PASSPHRASE:-}" ]; then
+            cat > ~/.ssh/ssh_askpass.sh <<'EOF'
+            #!/bin/sh
+            printf '%s\n' "$SSH_PASSPHRASE"
+            EOF
+            chmod 700 ~/.ssh/ssh_askpass.sh
+
+            export SSH_ASKPASS=~/.ssh/ssh_askpass.sh
+            export SSH_ASKPASS_REQUIRE=force
+            export DISPLAY=:0
+            setsid ssh-add ~/.ssh/deploy_key < /dev/null
+          else
+            ssh-add ~/.ssh/deploy_key
+          fi
 
           {
             echo "SSH_PORT=$SSH_PORT"
@@ -206,7 +209,7 @@ jobs:
 
           if ! ssh-add -l > /dev/null 2>&1; then
             echo "SSH agent has no loaded key."
-            echo "Check SSH_PRIVATE_KEY and SSH_PASSPHRASE secrets."
+            echo "Check SSH_PRIVATE_KEY and, if used, SSH_PASSPHRASE secrets."
             exit 1
           fi
 
@@ -214,7 +217,7 @@ jobs:
           if ! $RSYNC_SSH "$SSH_TARGET" "printf 'SSH_AUTH_OK\n'" > /tmp/ssh_preflight.log 2>&1; then
             cat /tmp/ssh_preflight.log
             echo "SSH authentication failed."
-            echo "Verify SSH_HOST, SSH_PORT, SSH_USERNAME, SSH_PRIVATE_KEY, SSH_PASSPHRASE, and SSH_KNOWN_HOSTS."
+            echo "Verify SSH_HOST, SSH_PORT, SSH_USERNAME, SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS, and SSH_PASSPHRASE if your key uses one."
             echo "Also confirm the matching public key is installed in Hostinger SSH access for this SSH user."
             exit 1
           fi
